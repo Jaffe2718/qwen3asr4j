@@ -1,0 +1,78 @@
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+
+plugins {
+    id 'java'
+}
+
+group = 'io.github.jaffe2718'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.slf4j:slf4j-api:2.0.16'
+    implementation 'org.jetbrains:annotations:15.0'
+    testImplementation 'org.slf4j:slf4j-simple:2.0.16'
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.register("compileCpp", Exec) {
+    def cudaEnabled = System.getProperty("GGML_CUDA", "OFF")
+    def vulkanEnabled = System.getProperty("GGML_VULKAN", "OFF")
+    def osShort = {
+        def os = System.getProperty("os.name").toLowerCase()
+        if (os.contains("win")) {
+            return "win"
+        } else if (os.contains("mac")) {
+            return "mac"
+        } else if (os.contains("linux")) {
+            return "linux"
+        } else {
+            throw new GradleException("Unsupported OS: $os")
+        }
+    }()
+    def archShort = {
+        def arch = System.getProperty("os.arch").toLowerCase()
+        if (arch.contains("amd64") || arch.contains("x86_64")) {
+            return "x64"
+        } else if (arch.contains("aarch64")) {
+            return "arm64"
+        } else {
+            throw new GradleException("Unsupported arch: $arch")
+        }
+    }()
+    def platform = "${osShort}-${archShort}"
+    def numThreads = Runtime.runtime.availableProcessors()
+    file("cpp-${platform}").mkdirs()
+    "cmake -B cpp-${platform} -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=${cudaEnabled} -DGGML_VULKAN=${vulkanEnabled}".execute().waitFor()
+    commandLine "cmake", "--build", "cpp-${platform}", "--config", "Release" , "-j", numThreads.toString()
+
+    // copy *.dll | *.so | *.dylib | bin/*.dll | lib/*.so | lib/*.dylib to src/main/resources/<platform>
+    doLast {
+        def buildDir = rootDir.toPath().resolve("cpp-${platform}")
+        def targetDir
+        if (vulkanEnabled == "ON") {
+            file("$rootDir/${platform}-vulkan")
+        } else if (cudaEnabled == "ON") {
+            file("$rootDir/${platform}-cuda")
+        } else {
+            file("$rootDir/src/main/resources/${platform}")
+        }
+        targetDir.mkdirs()
+        // recursively copy all files in buildDir to targetDir
+        buildDir.toFile().eachFileRecurse { f ->
+            if (f.name.endsWith(".dll") || f.name.endsWith(".so") || f.name.endsWith(".dylib")) {
+                Files.copy(f.toPath(), targetDir.toPath().resolve(f.name), StandardCopyOption.REPLACE_EXISTING)
+            }
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
