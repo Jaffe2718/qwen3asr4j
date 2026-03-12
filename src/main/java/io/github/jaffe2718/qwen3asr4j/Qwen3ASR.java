@@ -1,7 +1,5 @@
 package io.github.jaffe2718.qwen3asr4j;
 
-import java.util.function.BiConsumer;
-
 public class Qwen3ASR implements AutoCloseable {
 
     private int ctxId = -1;    // -1 means not loaded
@@ -27,7 +25,7 @@ public class Qwen3ASR implements AutoCloseable {
      * (tokens_generated, max_tokens) -> void
      * @param callback the progress callback
      */
-    public native void setProgressCallback(BiConsumer<Integer, Integer> callback);
+    public native void setProgressCallback(ProgressCallback callback);
 
     /**
      * Check if the model is loaded
