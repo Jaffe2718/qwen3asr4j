@@ -6,53 +6,71 @@
 #include <windows.h>
 #include <io.h>
 
-#define PROT_READ  0x1
-#define MAP_PRIVATE 0x2
+#define PROT_READ  0x01
+#define PROT_WRITE 0x02
+#define MAP_PRIVATE 0x02
+#define MAP_SHARED  0x01
 #define MAP_FAILED ((void*)-1)
 
-static void* mmap(void* /*ptr*/, size_t size, int prot, int /*flags*/, int fd, size_t /*offset*/) {
-    if (fd < 0 || (prot & PROT_READ) != PROT_READ) {
+// Windows 下 mmap 实现（真实内存映射）
+static void* mmap(void* /*ptr*/, size_t size, int prot, int flags, int fd, size_t offset) {
+    // 校验参数：仅支持读、私有映射，文件句柄有效，偏移量对齐
+    if (fd < 0 || !(prot & PROT_READ) || !(flags & MAP_PRIVATE)) {
         SetLastError(ERROR_INVALID_PARAMETER);
         return MAP_FAILED;
     }
-    void* buffer = _aligned_malloc(size, 32);
-    if (!buffer) {
-        SetLastError(ERROR_NOT_ENOUGH_MEMORY);
+
+    // 将 C 运行时文件句柄转换为 Windows 内核句柄
+    HANDLE win_fd = (HANDLE)_get_osfhandle(fd);
+    if (win_fd == INVALID_HANDLE_VALUE) {
+        SetLastError(ERROR_INVALID_HANDLE);
         return MAP_FAILED;
     }
 
-    // read from fd to buffer
-    size_t total_read = 0;
-    char* buf_ptr = (char*)buffer;
-    const size_t BUF_CHUNK = 4096;
-    while (total_read < size) {
-        size_t read_size = BUF_CHUNK < size - total_read ? BUF_CHUNK : size - total_read;
-        size_t bytes_read = _read(fd, buf_ptr + total_read, read_size);
-        total_read += bytes_read;
-
-        if (bytes_read < 0) {
-            free(buffer);
-            SetLastError(ERROR_READ_FAULT);
-            return MAP_FAILED;
-        }
-        if (bytes_read == 0) {
-            free(buffer);
-            SetLastError(ERROR_HANDLE_EOF);
-            return MAP_FAILED;
-        }
+    HANDLE mapping = CreateFileMappingW(
+        win_fd,
+        nullptr,
+        PAGE_READONLY,
+        0,
+        size,
+        nullptr
+    );
+    if (mapping == nullptr) {
+        return MAP_FAILED;
     }
-    return buffer;
+    void* mapped_ptr = MapViewOfFile(
+        mapping,
+        FILE_MAP_READ,
+        0,
+        (DWORD)offset,
+        size
+    );
+    CloseHandle(mapping);
+
+    if (mapped_ptr == nullptr) {
+        SetLastError(GetLastError());
+        return MAP_FAILED;
+    }
+
+    return mapped_ptr;
 }
 
-static int munmap(void* ptr, size_t /*size*/) {
+static int munmap(void* ptr, size_t size) {
+    (void)size;
+
     if (ptr == MAP_FAILED || ptr == nullptr) {
+        SetLastError(ERROR_INVALID_PARAMETER);
         return -1;
     }
-    _aligned_free(ptr);
+
+    // 解除视图映射
+    if (!UnmapViewOfFile(ptr)) {
+        SetLastError(GetLastError());
+        return -1;
+    }
+
     return 0;
 }
-
-#define MAP_FAILED ((void*)-1)
 
 #else
     #include <sys/mman.h>

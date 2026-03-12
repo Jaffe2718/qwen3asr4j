@@ -31,6 +31,7 @@ struct transcribe_params {
 // Transcription result
 struct transcribe_result {
     std::string text;
+    std::string language;
     std::vector<int32_t> tokens;
     bool success = false;
     std::string error_msg;

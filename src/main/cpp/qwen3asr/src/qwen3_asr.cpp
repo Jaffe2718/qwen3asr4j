@@ -130,7 +130,9 @@ transcribe_result Qwen3ASR::transcribe_internal(const float * samples, int n_sam
     result.t_decode_ms = get_time_ms() - t_decode_start;
     
     result.tokens = output_tokens;
-    result.text = decoder_.decode_tokens(output_tokens);
+    std::vector text_tokens(output_tokens.begin() + 2, output_tokens.end());  // remove language token
+    result.text = decoder_.decode_tokens(text_tokens);
+    result.language = decoder_.decode_token(output_tokens[1]);
     result.success = true;
     
     result.t_total_ms = get_time_ms() - t_total_start;

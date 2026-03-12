@@ -1,6 +1,7 @@
 package io.github.jaffe2718.qwen3asr4j;
 
 public record TranscribeResult(
+    String language,
     String text,
     boolean success,
     String errorMsg,

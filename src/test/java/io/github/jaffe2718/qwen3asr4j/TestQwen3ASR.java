@@ -39,6 +39,7 @@ public class TestQwen3ASR {
         LOGGER.info("transcribing {} samples in English from samples/jfk.wav", bytesEnUs.length / 2);
         TranscribeResult resultEnUs = asr.transcribe(toFloatArray(bytesEnUs), new TranscribeParams());
         LOGGER.info("resultEnUs.success() = {}", resultEnUs.success());
+        LOGGER.info("resultEnUs.language() = {}", resultEnUs.language());
         LOGGER.info("resultEnUs.text() = {}", resultEnUs.text());
         LOGGER.info("resultEnUs.errorMsg() = {}", resultEnUs.errorMsg());
         LOGGER.info("resultEnUs.tLoadMs() = {}", resultEnUs.tLoadMs());
@@ -46,6 +47,15 @@ public class TestQwen3ASR {
         LOGGER.info("resultEnUs.tEncodeMs() = {}", resultEnUs.tEncodeMs());
         LOGGER.info("resultEnUs.tDecodeMs() = {}", resultEnUs.tDecodeMs());
         LOGGER.info("resultEnUs.tTotalMs() = {}", resultEnUs.tTotalMs());
+    }
+
+
+    @Test
+    public void testSampleZhCn() throws IOException, URISyntaxException {
+        NativeManager.loadLibrary(LOGGER);
+        Qwen3ASR asr = new Qwen3ASR("qwen3-asr-0.6b-f16.gguf");
+        asr.setProgressCallback((tokensGenerated, maxTokens) -> LOGGER.info("tokensGenerated = {}, maxTokens = {}", tokensGenerated, maxTokens));
+        LOGGER.info("isLoaded = {}", asr.isLoaded());
 
         FileInputStream wavInZhCn = new FileInputStream("samples/IC0936W0337.wav");
         wavInZhCn.skip(44);
@@ -55,6 +65,7 @@ public class TestQwen3ASR {
         LOGGER.info("transcribing {} samples in Chinese from samples/IC0936W0337.wav", bytesZhCn.length / 2);
         TranscribeResult resultZhCn = asr.transcribe(toFloatArray(bytesZhCn), new TranscribeParams());
         LOGGER.info("resultZhCn.success() = {}", resultZhCn.success());
+        LOGGER.info("resultZhCn.language() = {}", resultZhCn.language());
         LOGGER.info("resultZhCn.text() = {}", resultZhCn.text());
         LOGGER.info("resultZhCn.errorMsg() = {}", resultZhCn.errorMsg());
         LOGGER.info("resultZhCn.tLoadMs() = {}", resultZhCn.tLoadMs());

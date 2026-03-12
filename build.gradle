@@ -57,11 +57,11 @@ tasks.register("compileCpp", Exec) {
         def buildDir = rootDir.toPath().resolve("cpp-${platform}")
         def targetDir
         if (vulkanEnabled == "ON") {
-            file("$rootDir/${platform}-vulkan")
+            targetDir = file("$rootDir/${platform}-vulkan")
         } else if (cudaEnabled == "ON") {
-            file("$rootDir/${platform}-cuda")
+            targetDir = file("$rootDir/${platform}-cuda")
         } else {
-            file("$rootDir/src/main/resources/${platform}")
+            targetDir = file("$rootDir/src/main/resources/${platform}")
         }
         targetDir.mkdirs()
         // recursively copy all files in buildDir to targetDir

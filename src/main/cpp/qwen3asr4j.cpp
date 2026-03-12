@@ -161,8 +161,8 @@ JNIEXPORT jobject JNICALL Java_io_github_jaffe2718_qwen3asr4j_Qwen3ASR_transcrib
 
     // create TranscribeResult object
     jclass res_cls = env->FindClass("io/github/jaffe2718/qwen3asr4j/TranscribeResult");
-    jmethodID res_ctor = env->GetMethodID(res_cls, "<init>", "(Ljava/lang/String;ZLjava/lang/String;JJJJJ)V");
-    jobject res_obj = env->NewObject(res_cls, res_ctor, env->NewStringUTF(res.text.c_str()), res.success, env->NewStringUTF(res.error_msg.c_str()), res.t_load_ms, res.t_mel_ms, res.t_encode_ms, res.t_decode_ms, res.t_total_ms);
+    jmethodID res_ctor = env->GetMethodID(res_cls, "<init>", "(Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;JJJJJ)V");
+    jobject res_obj = env->NewObject(res_cls, res_ctor, env->NewStringUTF(res.language.c_str()), env->NewStringUTF(res.text.c_str()), res.success, env->NewStringUTF(res.error_msg.c_str()), res.t_load_ms, res.t_mel_ms, res.t_encode_ms, res.t_decode_ms, res.t_total_ms);
 
     // release resources
     env->ReleaseFloatArrayElements(samples, samples_ptr, 0);

@@ -23,7 +23,8 @@ public class Qwen3ASR implements AutoCloseable {
     }
 
     /**
-     * Set the progress callback
+     * Set the progress callback function
+     * (tokens_generated, max_tokens) -> void
      * @param callback the progress callback
      */
     public native void setProgressCallback(BiConsumer<Integer, Integer> callback);
