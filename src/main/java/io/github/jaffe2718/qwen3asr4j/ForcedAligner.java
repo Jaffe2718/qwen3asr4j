@@ -2,23 +2,15 @@ package io.github.jaffe2718.qwen3asr4j;
 
 import io.github.jaffe2718.qwen3asr4j.result.AlignmentResult;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
+import java.io.FileNotFoundException;
 import java.util.Map;
 
-public class ForcedAligner implements AutoCloseable {
+public class ForcedAligner extends GGUFModelWrapper {
 
-    private int ctxId = -1;    // -1 means not loaded
-
-    public ForcedAligner(String modelPath) {
-        this.load(modelPath);
-    }
-
-    @Override
-    public void close() {
-        if (ctxId != -1) {
-            this.free();
-            ctxId = -1;
-        }
+    public ForcedAligner(String modelPath, @Nullable Logger logger) throws FileNotFoundException {
+        super(modelPath, logger);
     }
 
     /**
@@ -30,9 +22,6 @@ public class ForcedAligner implements AutoCloseable {
      * @see AlignmentResult
      */
     public AlignmentResult align(float[] samples, String text, String language) {
-        if (ctxId == -1) {
-            throw new IllegalStateException("ForcedAligner is not loaded");
-        }
         return align(samples, samples.length, text, language);
     }
 
@@ -44,39 +33,41 @@ public class ForcedAligner implements AutoCloseable {
      * @see AlignmentResult
      */
     public AlignmentResult align(float[] samples, String text) {
-        return align(samples, samples.length, text, "");
+        return align(samples, text, "");
     }
 
     /**
      * Get the last error message
      * @return the last error message
-     * @throws IllegalStateException if the ForcedAligner is not loaded
+     * @throws NullPointerException if the ForcedAligner is not loaded
      */
-    public native String getError() throws IllegalStateException;    // TODO test
+    public native String getError() throws NullPointerException;
 
     /**
      * Check if the ForcedAligner is loaded
      * @return true if loaded, false otherwise
      */
-    public native boolean isLoaded();    // TODO test
+    public native boolean isLoaded();
 
     /**
      * Get the hyperparameters of the model
      * @return the hyperparameters, null if not loaded
      */
     @Nullable
-    public native Map<String, Number> getHparams();    // TODO test
+    public native Map<String, Number> getHparams();
 
     /**
      * Load the model & set the context ID
      * @param modelPath the path to the model file
      */
-    private native void load(String modelPath);     // TODO test
+    @Override
+    protected native void load(String modelPath) throws FileNotFoundException;
 
     /**
      * Free the context ID
      */
-    private native void free();   // TODO test
+    @Override
+    protected native void free();
 
      /**
      * Align the audio samples with the text
@@ -86,6 +77,6 @@ public class ForcedAligner implements AutoCloseable {
      * @param language the language of the text (default: "")
      * @return the alignment result
      */
-    private native AlignmentResult align(float[] samples, int n_samples, String text, String language);   // TODO test
+    private native AlignmentResult align(float[] samples, int n_samples, String text, String language) throws NullPointerException;
 
 }

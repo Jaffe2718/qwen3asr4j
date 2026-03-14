@@ -3,23 +3,15 @@ package io.github.jaffe2718.qwen3asr4j;
 import io.github.jaffe2718.qwen3asr4j.param.TranscribeParams;
 import io.github.jaffe2718.qwen3asr4j.result.TranscribeResult;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
+import java.io.FileNotFoundException;
 import java.util.Map;
 
-public class Qwen3ASR implements AutoCloseable {
+public class Qwen3ASR extends GGUFModelWrapper {
 
-    private int ctxId = -1;    // -1 means not loaded
-
-    public Qwen3ASR(String modelPath) {
-        this.load(modelPath);
-    }
-
-    @Override
-    public void close() {
-        if (ctxId != -1) {
-            this.free();
-            ctxId = -1;
-        }
+    public Qwen3ASR(String modelPath, @Nullable Logger logger) throws FileNotFoundException {
+        super(modelPath, logger);
     }
 
     public TranscribeResult transcribe(float[] samples, TranscribeParams params) {
@@ -70,12 +62,14 @@ public class Qwen3ASR implements AutoCloseable {
      * Load the model & set the context ID
      * @param modelPath the path to the model file
      */
-    private native void load(String modelPath) throws IllegalArgumentException;
+    @Override
+    protected native void load(String modelPath) throws FileNotFoundException;
 
     /**
      * Free the context & release the model
      */
-    private native void free();
+    @Override
+    protected native void free();
 
     /**
      * Transcribe the audio samples

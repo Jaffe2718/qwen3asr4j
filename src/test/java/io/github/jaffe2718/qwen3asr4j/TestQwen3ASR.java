@@ -7,7 +7,6 @@ import io.github.jaffe2718.qwen3asr4j.result.TranscribeResult;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,7 +114,7 @@ public class TestQwen3ASR {
 
 
     @Test
-    public void testBuiltinLib() throws IOException, URISyntaxException {
+    public void testSampleEnUs() throws IOException, URISyntaxException {
         if (isCpuOnly()) {
             NativeManager.loadLibrary(LOGGER);
         } else if (isVulkanEnabled()) {
@@ -124,7 +123,7 @@ public class TestQwen3ASR {
             return;
         }
 
-        Qwen3ASR asr = new Qwen3ASR("qwen3-asr-0.6b-f16.gguf");
+        Qwen3ASR asr = new Qwen3ASR("qwen3-asr-0.6b-f16.gguf", LOGGER);
         LOGGER.info("asr.isLoaded = {}", asr.isLoaded());
         for (Map.Entry<String, Number> entry : Objects.requireNonNull(asr.getConfig()).entrySet()) {
             LOGGER.info("asr.config[{} = {}]", entry.getKey(), entry.getValue());
@@ -136,31 +135,33 @@ public class TestQwen3ASR {
         printTranscribeResult(resultEnUs);
         asr.close();
 
-        ForcedAligner aligner = new ForcedAligner("qwen3-forced-aligner-0.6b-f16.gguf");
+        ForcedAligner aligner = new ForcedAligner("qwen3-forced-aligner-0.6b-f16.gguf", LOGGER);
         LOGGER.info("aligner.isLoaded = {}", aligner.isLoaded());
+        LOGGER.info("aligner.errorMsg = {}", aligner.getError());
         for (Map.Entry<String, Number> entry : Objects.requireNonNull(aligner.getHparams()).entrySet()) {
             LOGGER.info("aligner.hparams[{} = {}]", entry.getKey(), entry.getValue());
         }
-        AlignmentResult alignmentResult = aligner.align(sampleEnUs, resultEnUs.text());   // TODO crash
+        AlignmentResult alignmentResult = aligner.align(sampleEnUs, resultEnUs.text());
         printAlignmentResult(alignmentResult);
         aligner.close();
     }
 
-//    @Test
-//    public void testSampleZhCn() throws IOException, URISyntaxException {
-//        if (isCpuOnly()) {
-//            NativeManager.loadLibrary(LOGGER);
-//        } else if (isVulkanEnabled()) {
-//            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-vulkan"), LOGGER);
-//        } else {
-//            return;
-//        }
-//        Qwen3ASR asr = new Qwen3ASR("qwen3-asr-0.6b-f16.gguf");
-//        asr.setProgressCallback(TestQwen3ASR::testCallback);
-//        LOGGER.info("isLoaded = {}", asr.isLoaded());
-//        LOGGER.info("transcribing {} samples in Chinese from samples/IC0936W0337.wav", sampleZhCn.length);
-//        TranscribeResult resultZhCn = asr.transcribe(sampleZhCn, new TranscribeParams());
-//        printTranscribeResult(resultZhCn);
-//    }
+    @Test
+    public void testSampleZhCn() throws IOException, URISyntaxException {
+        if (isCpuOnly()) {
+            NativeManager.loadLibrary(LOGGER);
+        } else if (isVulkanEnabled()) {
+            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-vulkan"), LOGGER);
+        } else {
+            return;
+        }
+        Qwen3ASR asr = new Qwen3ASR("qwen3-asr-0.6b-f16.gguf", LOGGER);
+        asr.setProgressCallback(TestQwen3ASR::testCallback);
+        LOGGER.info("isLoaded = {}", asr.isLoaded());
+        LOGGER.info("transcribing {} samples in Chinese from samples/IC0936W0337.wav", sampleZhCn.length);
+        TranscribeResult resultZhCn = asr.transcribe(sampleZhCn, new TranscribeParams());
+        printTranscribeResult(resultZhCn);
+        asr.close();
+    }
 
 }

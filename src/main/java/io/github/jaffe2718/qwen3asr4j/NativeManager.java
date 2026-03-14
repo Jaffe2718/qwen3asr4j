@@ -9,6 +9,7 @@ import java.nio.file.*;
 import java.util.HashMap;
 import java.util.Objects;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
@@ -47,6 +48,13 @@ public abstract class NativeManager {
         NATIVE_LIB_DIR = osShort + "-" + osArch;
     }
 
+    /**
+     * Load the native libraries from the resources.
+     *
+     * @param logger the logger to use for logging, or null if no logging is desired
+     * @throws IOException     if something goes wrong
+     * @throws URISyntaxException if something goes wrong
+     */
     @SuppressWarnings("DataFlowIssue")
     public static void loadLibrary(@Nullable Logger logger) throws IOException, URISyntaxException {
         // 1. extract all files in NATIVE_LIB_DIR to temporary directory
@@ -56,6 +64,12 @@ public abstract class NativeManager {
         loadLibrary(tempDir, logger);
     }
 
+    /**
+     * Load the native libraries from the specified directory.
+     *
+     * @param libDir the directory containing the native libraries
+     * @param logger the logger to use for logging, or null if no logging is desired
+     */
     public static void loadLibrary(Path libDir, @Nullable Logger logger) {
         for (String libName : LOAD_ORDER) {
             for (File file : Objects.requireNonNull(libDir.toFile().listFiles())) {
@@ -84,7 +98,7 @@ public abstract class NativeManager {
      * @throws IOException if something goes wrong
      */
     @SuppressWarnings("resource")
-    private static void extractResource(URI uri, Path destDir) throws IOException {
+    private static void extractResource(@NotNull URI uri, Path destDir) throws IOException {
         Path internalPath;
         // If we're not inside a JAR, there's nothing to do
         if ("jar".equals(uri.getScheme())) {

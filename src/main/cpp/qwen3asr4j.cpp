@@ -1,3 +1,5 @@
+#include <format>
+
 #include "qwen3_asr.h"
 
 #include <unordered_map>
@@ -28,6 +30,12 @@ extern "C" {
     jint JNI_OnLoad(JavaVM *vm, void *reserved) {
        g_jvm = vm;
         return JNI_VERSION_1_6;
+    }
+
+    void slf4j_info(JNIEnv *env, jobject ggufModelWrapper, const char *msg) {
+        jclass cls = env->GetObjectClass(ggufModelWrapper);
+        jmethodID mid = env->GetMethodID(cls, "info", "(Ljava/lang/String;)V");
+        env->CallVoidMethod(ggufModelWrapper, mid, env->NewStringUTF(msg));
     }
 
 
@@ -154,7 +162,7 @@ extern "C" {
         // Get model path from Java string
         const char* model_path = env->GetStringUTFChars(modelPath, nullptr);
         if (model_path == nullptr) {
-            env->ThrowNew(env->FindClass("java/lang/IllegalArgumentException"), "Model path is null");
+            env->ThrowNew(env->FindClass("java/io/FileNotFoundException"), "Model path is null");
             return;
         }
 
@@ -164,13 +172,13 @@ extern "C" {
 
         // Load model
         const bool success = qwen3_asr_map[ctx_id].load_model(model_path);
-        fprintf(stderr, "Model load state: %s\n", success ? "success" : "failed");
+        slf4j_info(env, thiz, ("Model load state: " + std::string(success ? "success" : "failed")).c_str());
 
         // Release Java string
         env->ReleaseStringUTFChars(modelPath, model_path);
 
         if (!success) {
-            env->ThrowNew(env->FindClass("java/lang/IllegalArgumentException"), ("Qwen3ASR model load failed: " + qwen3_asr_map[ctx_id].get_error()).c_str());
+            env->ThrowNew(env->FindClass("java/io/FileNotFoundException"), ("Qwen3ASR model load failed: " + qwen3_asr_map[ctx_id].get_error()).c_str());
             qwen3_asr_map.erase(ctx_id);
             return;
         }
@@ -190,7 +198,7 @@ extern "C" {
             qwen3_asr_map.erase(ctx_id);
             callback_map.erase(ctx_id);
         }
-        printf("Qwen3ASR context %d freed\n", ctx_id);
+        slf4j_info(env, thiz, std::format("Qwen3ASR context {} freed", ctx_id).c_str());
     }
 
     /**
@@ -201,7 +209,7 @@ extern "C" {
     JNIEXPORT jobject JNICALL Java_io_github_jaffe2718_qwen3asr4j_Qwen3ASR_transcribe(JNIEnv *env, jobject thiz, jfloatArray samples, jint nSamples, jobject params) {
         jint ctx_id = env->GetIntField(thiz, env->GetFieldID(env->GetObjectClass(thiz), "ctxId", "I"));
         if (!qwen3_asr_map.contains(ctx_id)) {
-            env->ThrowNew(env->FindClass("java/lang/IllegalStateException"), "Context not loaded");
+            env->ThrowNew(env->FindClass("java/lang/NullPointerException"), "Qwen3ASR context not loaded");
             return nullptr;
         }
         // get model context (reference, not copy)
@@ -242,12 +250,12 @@ extern "C" {
      */
     JNIEXPORT jstring JNICALL Java_io_github_jaffe2718_qwen3asr4j_ForcedAligner_getError(JNIEnv *env, jobject thiz) {
         jint ctx_id = env->GetIntField(thiz, env->GetFieldID(env->GetObjectClass(thiz), "ctxId", "I"));
-        if (!qwen3_asr_map.contains(ctx_id)) {
-            env->ThrowNew(env->FindClass("java/lang/IllegalStateException"), "Context not loaded");
+        if (!forced_aligner_map.contains(ctx_id)) {
+            env->ThrowNew(env->FindClass("java/lang/NullPointerException"), "ForcedAligner context not loaded");
             return nullptr;
         }
         // get model context (reference, not copy)
-        qwen3_asr::Qwen3ASR &ctx = qwen3_asr_map[ctx_id];
+        qwen3_asr::ForcedAligner &ctx = forced_aligner_map[ctx_id];
         return env->NewStringUTF(ctx.get_error().c_str());
     }
 
@@ -322,7 +330,7 @@ extern "C" {
      JNIEXPORT void JNICALL Java_io_github_jaffe2718_qwen3asr4j_ForcedAligner_load(JNIEnv *env, jobject thiz, jstring modelPath) {
         const char* model_path = env->GetStringUTFChars(modelPath, nullptr);
         if (model_path == nullptr) {
-            env->ThrowNew(env->FindClass("java/lang/IllegalArgumentException"), "Model path is null");
+            env->ThrowNew(env->FindClass("java/io/FileNotFoundException"), "Model path is null");
             return;
         }
 
@@ -332,13 +340,13 @@ extern "C" {
 
         // Load model
         const bool success = forced_aligner_map[ctx_id].load_model(model_path);
-        fprintf(stderr, "ForcedAligner<%d> model load state: %s\n", ctx_id, success ? "success" : "failed");
+        slf4j_info(env, thiz, std::format("ForcedAligner<{}> model load state: {}", ctx_id, success ? "success" : "failed").c_str());
 
         // Release Java string
         env->ReleaseStringUTFChars(modelPath, model_path);
 
         if (!success) {
-            env->ThrowNew(env->FindClass("java/lang/IllegalArgumentException"), ("ForcedAligner model load failed: " + forced_aligner_map[ctx_id].get_error()).c_str());
+            env->ThrowNew(env->FindClass("java/io/FileNotFoundException"), ("ForcedAligner model load failed: " + forced_aligner_map[ctx_id].get_error()).c_str());
             forced_aligner_map.erase(ctx_id);
             return;
         }
@@ -355,7 +363,7 @@ extern "C" {
         if (forced_aligner_map.contains(ctx_id)) {
             forced_aligner_map.erase(ctx_id);
         }
-        printf("ForcedAligner context %d freed\n", ctx_id);
+        slf4j_info(env, thiz, std::format("ForcedAligner<{}> context freed", ctx_id).c_str());
     }
 
     /**
@@ -402,7 +410,7 @@ extern "C" {
                 result.t_total_ms
             );
         }
-        env->ThrowNew(env->FindClass("java/lang/IllegalStateException"), "ForcedAligner not loaded");
+        env->ThrowNew(env->FindClass("java/lang/NullPointerException"), "ForcedAligner not loaded");
         return nullptr;
     }
 
