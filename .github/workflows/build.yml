@@ -1,0 +1,90 @@
+name: Build and publish
+
+on:
+    workflow_dispatch:
+
+jobs:
+    prepare:
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v3
+
+    build-win: # cpu/cuda/vulkan
+        needs: [ prepare ]
+        runs-on: windows-latest
+        strategy:
+            matrix:
+                include:
+                    -   name: win-x64-cpu
+                        ggml_cuda: OFF
+                        ggml_vulkan: OFF
+                    -   name: win-x64-cuda
+                        ggml_cuda: ON
+                        ggml_vulkan: OFF
+                    -   name: win-x64-vulkan
+                        ggml_cuda: OFF
+                        ggml_vulkan: ON
+        env:
+            GGML_CUDA: ${{ matrix.ggml_cuda }}
+            GGML_VULKAN: ${{ matrix.ggml_vulkan }}
+        steps:
+            -   uses: actions/checkout@v3
+        # TODO build
+
+    build-linux: # cpu/cuda/vulkan
+        needs: [ prepare ]
+        strategy:
+            matrix:
+                include:
+                    -   name: linux-x64-cpu
+                        runner: ubuntu-22.04
+                        ggml_cuda: OFF
+                        ggml_vulkan: OFF
+                    -   name: linux-x64-cuda
+                        runner: ubuntu-22.04
+                        ggml_cuda: ON
+                        ggml_vulkan: OFF
+                    -   name: linux-x64-vulkan
+                        runner: ubuntu-22.04
+                        ggml_cuda: OFF
+                        ggml_vulkan: ON
+                    -   name: linux-arm64-cpu
+                        runner: ubuntu-22.04-arm
+                        ggml_cuda: OFF
+                        ggml_vulkan: OFF
+                    -   name: linux-arm64-vulkan
+                        runner: ubuntu-22.04-arm
+                        ggml_cuda: OFF
+                        ggml_vulkan: ON
+        runs-on: ${{ matrix.runner }}
+        env:
+            GGML_CUDA: ${{ matrix.ggml_cuda }}
+            GGML_VULKAN: ${{ matrix.ggml_vulkan }}
+        steps:
+            -   uses: actions/checkout@v3
+            # TODO build
+
+    build-mac:
+        needs: [ prepare ]
+        strategy:
+            matrix:
+                include:
+                    -   name: mac-x64-cpu
+                        runner: macos-latest
+                        ggml_vulkan: OFF
+                    -   name: mac-x64-vulkan
+                        runner: macos-latest
+                        ggml_vulkan: ON
+                    -   name: mac-arm64-cpu
+                        runner: macos-latest-arm
+                        ggml_vulkan: OFF
+                    -   name: mac-arm64-vulkan
+                        runner: macos-latest-arm
+                        ggml_vulkan: ON
+        runs-on: ${{ matrix.runner }}
+        # TODO build
+
+    publish:
+        needs: [ build-win, build-linux, build-mac]
+        runs-on: ubuntu-latest
+        # TODO publish

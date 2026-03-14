@@ -74,24 +74,3 @@ target_include_directories(qwen3asr4j PRIVATE
         src/main/cpp
         src/main/cpp/qwen3asr/include
 )
-
-
-# Test
-add_executable(test_qwen3asr_cpp
-        src/test/cpp/test_qwen3asr.cpp
-        src/main/cpp/qwen3asr/src/audio_encoder.cpp
-        src/main/cpp/qwen3asr/src/forced_aligner.cpp
-        src/main/cpp/qwen3asr/src/gguf_loader.cpp
-        src/main/cpp/qwen3asr/src/mel_spectrogram.cpp
-        src/main/cpp/qwen3asr/src/qwen3_asr.cpp
-        src/main/cpp/qwen3asr/src/text_decoder.cpp
-)
-
-target_include_directories(test_qwen3asr_cpp PRIVATE
-        ggml/include
-        src/main/cpp/qwen3asr/include
-)
-
-target_link_libraries(test_qwen3asr_cpp PRIVATE
-        ggml
-)

@@ -1,4 +1,4 @@
-package io.github.jaffe2718.qwen3asr4j;
+package io.github.jaffe2718.qwen3asr4j.param;
 
 public record TranscribeParams(
     int maxTokens,
