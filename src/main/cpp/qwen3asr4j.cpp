@@ -162,7 +162,7 @@ extern "C" {
         // Get model path from Java string
         const char* model_path = env->GetStringUTFChars(modelPath, nullptr);
         if (model_path == nullptr) {
-            env->ThrowNew(env->FindClass("java/io/FileNotFoundException"), "Model path is null");
+            env->ThrowNew(env->FindClass("java/io/FileNotFoundException"), "Qwen3ASR model path is null");
             return;
         }
 
@@ -172,7 +172,7 @@ extern "C" {
 
         // Load model
         const bool success = qwen3_asr_map[ctx_id].load_model(model_path);
-        slf4j_info(env, thiz, ("Model load state: " + std::string(success ? "success" : "failed")).c_str());
+        slf4j_info(env, thiz, ("Qwen3ASR model load state: " + std::string(success ? "success" : "failed")).c_str());
 
         // Release Java string
         env->ReleaseStringUTFChars(modelPath, model_path);

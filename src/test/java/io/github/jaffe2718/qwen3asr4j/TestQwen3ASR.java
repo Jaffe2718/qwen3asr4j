@@ -114,7 +114,7 @@ public class TestQwen3ASR {
 
 
     @Test
-    public void testSampleEnUs() throws IOException, URISyntaxException {
+    public void test0_6b() throws IOException, URISyntaxException {
         if (isCpuOnly()) {
             NativeManager.loadLibrary(LOGGER);
         } else if (isVulkanEnabled()) {
@@ -123,7 +123,7 @@ public class TestQwen3ASR {
             return;
         }
 
-        Qwen3ASR asr = new Qwen3ASR("qwen3-asr-0.6b-f16.gguf", LOGGER);
+        Qwen3ASR asr = new Qwen3ASR("qwen3-asr-0.6b-q4_1.gguf", LOGGER);
         LOGGER.info("asr.isLoaded = {}", asr.isLoaded());
         for (Map.Entry<String, Number> entry : Objects.requireNonNull(asr.getConfig()).entrySet()) {
             LOGGER.info("asr.config[{} = {}]", entry.getKey(), entry.getValue());
@@ -147,7 +147,7 @@ public class TestQwen3ASR {
     }
 
     @Test
-    public void testSampleZhCn() throws IOException, URISyntaxException {
+    public void test1_7b() throws IOException, URISyntaxException {
         if (isCpuOnly()) {
             NativeManager.loadLibrary(LOGGER);
         } else if (isVulkanEnabled()) {
@@ -155,7 +155,7 @@ public class TestQwen3ASR {
         } else {
             return;
         }
-        Qwen3ASR asr = new Qwen3ASR("qwen3-asr-0.6b-f16.gguf", LOGGER);
+        Qwen3ASR asr = new Qwen3ASR(Path.of("qwen3-asr-1.7b-q4_1.gguf").toAbsolutePath().toString(), LOGGER);
         asr.setProgressCallback(TestQwen3ASR::testCallback);
         LOGGER.info("isLoaded = {}", asr.isLoaded());
         LOGGER.info("transcribing {} samples in Chinese from samples/IC0936W0337.wav", sampleZhCn.length);

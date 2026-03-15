@@ -78,6 +78,6 @@ public class Qwen3ASR extends GGUFModelWrapper {
      * @param params the transcribe parameters
      * @return the transcribe result
      */
-    private native TranscribeResult transcribe(float[] samples, int nSamples, TranscribeParams params) throws IllegalStateException;
+    private native TranscribeResult transcribe(float[] samples, int nSamples, TranscribeParams params) throws NullPointerException;
 
 }

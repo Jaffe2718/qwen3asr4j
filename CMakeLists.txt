@@ -5,20 +5,16 @@ project(qwen3asr4j C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(BUILD_SHARED_LIBS ON)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 option(GGML_CUDA "ggml: enable CUDA backend" OFF)
 option(GGML_VULKAN "ggml: enable Vulkan backend" OFF)
 
-if (WIN32 AND MINGW)
-    set(GGML_WIN_VER "0x0601" CACHE STRING "Windows version" FORCE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_WIN32_WINNT=0x0601 -DNTDDI_VERSION=0x0601")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_WIN32_WINNT=0x0601 -DNTDDI_VERSION=0x0601")
-    set(GGML_OPENMP OFF CACHE BOOL "Disable OpenMP" FORCE)
-    add_compile_definitions(__MINGW32__)
-endif ()
-
 set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_SOVERWRITE ON)
 set(CMAKE_INSTALL_CREATE_SYMLINK OFF)
+add_definitions(-D_FILE_OFFSET_BITS=64)
+
 if (UNIX)
     if (APPLE)
         set(CMAKE_SHARED_LIBRARY_SUFFIX ".dylib")
@@ -29,6 +25,7 @@ if (UNIX)
     endif ()
     set(CMAKE_INSTALL_FOLLOW_SYMLINK_CHAIN OFF CACHE BOOL "Do not follow symlinks on install" FORCE)
 endif ()
+
 
 set(JAVA_AWT_LIBRARY NotNeeded)
 set(JAVA_JVM_LIBRARY NotNeeded)
@@ -71,6 +68,6 @@ endif ()
 target_include_directories(qwen3asr4j PRIVATE
         ${JNI_INCLUDE_DIRS}
         ggml/include
-        src/main/cpp
+        ggml/src
         src/main/cpp/qwen3asr/include
 )
