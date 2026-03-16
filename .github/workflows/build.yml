@@ -49,11 +49,10 @@ jobs:
 
             -   name: Download models      # cpu/vulkan, for test
                 if: matrix.ggml_cuda == 'OFF'
-                shell: powershell
                 run: |
-                    Invoke-WebRequest -Uri https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-asr-0.6b-q8_0.gguf?download=true -OutFile qwen3-asr-0.6b-q8_0.gguf
-                    Invoke-WebRequest -Uri https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-forcedaligner-0.6b-f16.gguf?download=true -OutFile qwen3-forcedaligner-0.6b-f16.gguf
-                    Invoke-WebRequest -Uri https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-asr-1.7b-q4_1.gguf?download=true -OutFile qwen3-asr-1.7b-q4_1.gguf
+                    curl -L -o qwen3-asr-0.6b-q8_0.gguf "https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-asr-0.6b-q8_0.gguf?download=true"
+                    curl -L -o qwen3-forcedaligner-0.6b-f16.gguf "https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-forcedaligner-0.6b-f16.gguf?download=true"
+                    curl -L -o qwen3-asr-1.7b-q4_1.gguf "https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-asr-1.7b-q4_1.gguf?download=true"
 
             -   name: Compile
                 shell: powershell
