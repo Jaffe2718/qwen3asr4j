@@ -133,6 +133,8 @@ To use custom Qwen3-ASR models, you can convert them from Hugging Face format to
 python scripts/convert_hf_to_gguf.py --input path/to/hf/model --output model.gguf --type f16
 ```
 
+> for pre-converted models, see [Qwen3-ASR-GGUF](https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF)
+
 ## Performance Tips
 
 - **Model Selection**: Use Qwen3-ASR-0.6B for faster inference, Qwen3-ASR-1.7B for higher accuracy

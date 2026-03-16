@@ -5,50 +5,7 @@ on:
 
 jobs:
 
-    prepare:
-        runs-on: ubuntu-latest
-        steps:
-            -   uses: actions/checkout@v6
-            -   uses: actions/setup-python@v6
-                with:
-                    python-version: '3.12'
-            -   name: Install Python dependencies
-                shell: bash -l {0}
-                run: |
-                    sudo pip3 install numpy tqdm torch torchvision  --index-url https://download.pytorch.org/whl/cpu
-                    sudo pip3 install safetensors==0.7.0 gguf==0.18.0
-            -   name: Convert HF models to GGUF
-                shell: bash -l {0}
-                run: |
-                    git clone https://github.com/QwenLM/Qwen3-ASR-0.6B.git
-                    python scripts/convert_hf_to_gguf.py \
-                        --input Qwen3-ASR-0.6B \
-                        --output qwen3-asr-0.6b-q8_0.gguf \
-                        --type q8_0
-                    sudo rm -rf Qwen3-ASR-0.6B
-                    
-                    git clone https://github.com/QwenLM/Qwen3-ASR-1.7B.git
-                    python scripts/convert_hf_to_gguf.py \
-                        --input Qwen3-ASR-1.7B \
-                        --output qwen3-asr-1.7b-q4_1.gguf \
-                        --type q4_1
-                    sudo rm -rf Qwen3-ASR-1.7B
-                    
-                    git clone https://github.com/QwenLM/Qwen3-ForcedAligner-0.6B.git
-                    python scripts/convert_hf_to_gguf.py \
-                        --input Qwen3-ForcedAligner-0.6B \
-                        --output qwen3-forcedaligner-0.6b-f16.gguf \
-                        --type f16
-                    sudo rm -rf Qwen3-ForcedAligner-0.6B
-            -   name: Upload models
-                uses: actions/upload-artifact@v4
-                with:
-                    name: gguf-models
-                    path: qwen3-*.gguf
-
-
     build-win: # cpu/vulkan
-        needs: [ prepare ]
         runs-on: windows-latest
         strategy:
             matrix:
@@ -89,10 +46,10 @@ jobs:
 
             -   name: Download models      # cpu/vulkan, for test
                 if: matrix.ggml_cuda == 'OFF'
-                uses: actions/download-artifact@v4
-                with:
-                    name: gguf-models
-                    path: ./
+                run:
+                    Invoke-WebRequest -Uri https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-asr-0.6b-q8_0.gguf?download=true -OutFile qwen3-asr-0.6b-q8_0.gguf
+                    Invoke-WebRequest -Uri https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-forcedaligner-0.6b-f16.gguf?download=true -OutFile qwen3-forcedaligner-0.6b-f16.gguf
+                    Invoke-WebRequest -Uri https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-asr-1.7b-q4_1.gguf?download=true -OutFile qwen3-asr-1.7b-q4_1.gguf
 
             -   name: Compile
                 run: |
@@ -145,7 +102,6 @@ jobs:
 
 
     build-linux: # cpu/cuda/vulkan
-        needs: [ prepare ]
         strategy:
             matrix:
                 include:
@@ -240,10 +196,10 @@ jobs:
 
             -   name: Download models      # cpu/vulkan, for test
                 if: matrix.ggml_cuda == 'OFF'
-                uses: actions/download-artifact@v4
-                with:
-                    name: gguf-models
-                    path: ./
+                run: |
+                    curl -L -o qwen3-asr-0.6b-q8_0.gguf https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-asr-0.6b-q8_0.gguf?download=true
+                    curl -L -o qwen3-forcedaligner-0.6b-f16.gguf https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-forcedaligner-0.6b-f16.gguf?download=true
+                    curl -L -o qwen3-asr-1.7b-q4_1.gguf https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-asr-1.7b-q4_1.gguf?download=true
 
             -   name: Compile
                 run: |
@@ -289,7 +245,6 @@ jobs:
 
 
     build-mac:
-        needs: [ prepare ]
         strategy:
             matrix:
                 include:
@@ -307,10 +262,10 @@ jobs:
                      java-version: '21'
 
             -   name: Download models      # for test
-                uses: actions/download-artifact@v4
-                with:
-                    name: gguf-models
-                    path: ./
+                run: |
+                    curl -L -o qwen3-asr-0.6b-q8_0.gguf https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-asr-0.6b-q8_0.gguf?download=true
+                    curl -L -o qwen3-forcedaligner-0.6b-f16.gguf https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-forcedaligner-0.6b-f16.gguf?download=true
+                    curl -L -o qwen3-asr-1.7b-q4_1.gguf https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-asr-1.7b-q4_1.gguf?download=true
 
             -   name: Compile
                 run: |
@@ -343,6 +298,14 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@v6
+
+            -   uses: jlumbroso/free-disk-space@main
+                with:
+                    tool-cache: false
+                    android: true
+                    dotnet: true
+                    haskell: true
+                    docker-images: true
 
             -   uses: actions/setup-java@v5
                 with:
@@ -399,16 +362,10 @@ jobs:
                     name: win-x64-vulkan-natives
                     path: win-x64-vulkan/
 
-            -   name: Build JAR
+            -   name: Build JAR and zips for release
                 run: |
                     chmod +x ./gradlew
-                    ./gradlew jar
-                    ./gradlew sourceJar
-                    ./gradlew javadocJar
-
-            -   name: Prepare zips for release
-                run: |
-                    chmod +x ./gradlew
+                    ./gradlew clean build publish --stacktrace -x test
                     ./gradlew prepareZipsForRelease
 
             -   name: Publish to maven central

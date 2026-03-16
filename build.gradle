@@ -3,6 +3,7 @@ import java.nio.file.StandardCopyOption
 
 plugins {
     id 'java'
+    id 'maven-publish'
     id 'org.jreleaser' version '1.23.0'
 }
 
@@ -111,6 +112,47 @@ tasks.register("prepareZipsForRelease", Exec) {    // for GitHub Releases
 test {
     useJUnitPlatform()
 }
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+
+            pom {
+                // Apparently you need to do this because it doesn't get autofilled (at least for description)
+                name = project.name
+                description = "Java binding for Qwen3 ASR"
+                url = 'https://github.com/Jaffe2718/qwen3asr4j'
+
+                licenses {
+                    license {
+                        name = 'Apache-2.0'
+                        url = 'https://github.com/Jaffe2718/qwen3asr4j?tab=Apache-2.0-1-ov-file'
+                    }
+                }
+
+                developers {
+                    developer {
+                        name = 'LI CHANGZHE'
+                        email = 'qqyttwqeei@163.com'
+                    }
+                }
+
+                scm {
+                    connection = 'scm:git:https://github.com/Jaffe2718/qwen3asr4j.git'
+                    developerConnection = 'scm:git:ssh://github.com/Jaffe2718/qwen3asr4j.git'
+                    url = 'https://github.com/Jaffe2718/qwen3asr4j'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            url = layout.buildDirectory.dir('staging-deploy')
+        }
+    }
+}
+
 
 jreleaser {
     signing {
