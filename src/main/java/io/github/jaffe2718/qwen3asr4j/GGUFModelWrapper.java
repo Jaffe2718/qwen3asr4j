@@ -5,9 +5,15 @@ import org.slf4j.Logger;
 
 import java.io.FileNotFoundException;
 
+/**
+ * The base class for GGUF model wrappers.
+ */
 @SuppressWarnings("unused")
 public abstract class GGUFModelWrapper implements AutoCloseable {
 
+    /**
+     * The logger to use for logging, null to disable logging
+     */
     protected @Nullable final Logger logger;
 
     /**
@@ -17,12 +23,27 @@ public abstract class GGUFModelWrapper implements AutoCloseable {
     @SuppressWarnings("FieldMayBeFinal")
     private int ctxId = -1;
 
+    /**
+     * The constructor.
+     * @param modelPath the path to the model file
+     * @param logger the logger to use, null to disable logging
+     * @throws FileNotFoundException if the model file does not exist or is invalid
+     */
     protected GGUFModelWrapper(String modelPath, @Nullable Logger logger) throws FileNotFoundException {
         this.load(modelPath);
         this.logger = logger;
     }
 
+    /**
+     * Load the model and set the context ID
+     * @param modelPath the path to the model file
+     * @throws FileNotFoundException if the model file does not exist or is invalid
+     */
     protected abstract void load(String modelPath) throws FileNotFoundException;
+
+    /**
+     * Free the context and release the model
+     */
     protected abstract void free();
 
     /**

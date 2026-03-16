@@ -123,7 +123,7 @@ public class TestQwen3ASR {
             return;
         }
 
-        Qwen3ASR asr = new Qwen3ASR("qwen3-asr-0.6b-q4_1.gguf", LOGGER);
+        Qwen3ASR asr = new Qwen3ASR("qwen3-asr-0.6b-q8_0.gguf", LOGGER);
         LOGGER.info("asr.isLoaded = {}", asr.isLoaded());
         for (Map.Entry<String, Number> entry : Objects.requireNonNull(asr.getConfig()).entrySet()) {
             LOGGER.info("asr.config[{} = {}]", entry.getKey(), entry.getValue());

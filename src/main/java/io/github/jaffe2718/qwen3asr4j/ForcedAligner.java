@@ -7,8 +7,17 @@ import org.slf4j.Logger;
 import java.io.FileNotFoundException;
 import java.util.Map;
 
+/**
+ * The forced aligner class.
+ */
 public class ForcedAligner extends GGUFModelWrapper {
 
+    /**
+     * The constructor.
+     * @param modelPath the path to the model file
+     * @param logger the logger to use, null to disable logging
+     * @throws FileNotFoundException if the model file is not found
+     */
     public ForcedAligner(String modelPath, @Nullable Logger logger) throws FileNotFoundException {
         super(modelPath, logger);
     }
@@ -57,8 +66,9 @@ public class ForcedAligner extends GGUFModelWrapper {
     public native Map<String, Number> getHparams();
 
     /**
-     * Load the model & set the context ID
+     * Load the model and set the context ID
      * @param modelPath the path to the model file
+     * @throws FileNotFoundException if the model file does not exist or is invalid
      */
     @Override
     protected native void load(String modelPath) throws FileNotFoundException;

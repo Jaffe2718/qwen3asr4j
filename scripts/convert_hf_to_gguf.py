@@ -255,7 +255,7 @@ class Qwen3ASRConverter:
 
     def _should_quantize(self, tensor_name: str) -> bool:
         """Determine if a tensor should be quantized (Q8_0) or kept in F16.
-        
+
         Tensors to keep in F16 for quality:
         - Embeddings (token_embd, output, pos_embd)
         - Layer norms (attn_norm, ffn_norm, output_norm, ln)
@@ -264,15 +264,15 @@ class Qwen3ASRConverter:
         # Keep embeddings in F16
         if any(x in tensor_name for x in ["token_embd", "output.weight", "pos_embd"]):
             return False
-        
+
         # Keep layer norms in F16
         if any(x in tensor_name for x in ["_norm", ".ln", "ln_post"]):
             return False
-        
+
         # Keep biases in F16 (they're usually 1D anyway, handled separately)
         if ".bias" in tensor_name:
             return False
-        
+
         # Quantize weight matrices
         return True
 
@@ -321,7 +321,7 @@ class Qwen3ASRConverter:
             if not self._should_quantize(tensor_name):
                 logger.debug(f"Keeping {tensor_name} in F16 (not quantizing)")
                 return data.astype(np.float16), gguf.GGMLQuantizationType.F16
-            
+
             # Quantize to Q8_0
             # Data must be float32 for quantization
             data = data.astype(np.float32)
@@ -330,6 +330,19 @@ class Qwen3ASRConverter:
                 return quantized, gguf.GGMLQuantizationType.Q8_0
             except Exception as e:
                 logger.warning(f"Q8_0 quantization failed for {tensor_name}: {e}, falling back to F16")
+                return data.astype(np.float16), gguf.GGMLQuantizationType.F16
+        elif self.output_type == "q4_1":
+            if not self._should_quantize(tensor_name):
+                logger.debug(f"Keeping {tensor_name} in F16 (not quantizing)")
+                return data.astype(np.float16), gguf.GGMLQuantizationType.F16
+            # Quantize to Q4_1
+            # Data must be float32 for quantization
+            data = data.astype(np.float32)
+            try:
+                quantized = gguf.quants.quantize(data, gguf.GGMLQuantizationType.Q4_1)
+                return quantized, gguf.GGMLQuantizationType.Q4_1
+            except Exception as e:
+                logger.warning(f"Q4_1 quantization failed for {tensor_name}: {e}, falling back to F16")
                 return data.astype(np.float16), gguf.GGMLQuantizationType.F16
         else:
             # Default to F16
@@ -444,8 +457,6 @@ class Qwen3ASRConverter:
                 ftype = gguf.LlamaFileType.MOSTLY_F16
             case "q8_0":
                 ftype = gguf.LlamaFileType.MOSTLY_Q8_0
-            case "q5_1":
-                ftype = gguf.LlamaFileType.MOSTLY_Q5_1
             case "q4_1":
                 ftype = gguf.LlamaFileType.MOSTLY_Q4_1
             case _:

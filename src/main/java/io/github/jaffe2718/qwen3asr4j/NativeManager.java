@@ -13,12 +13,24 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
+/**
+ * The native manager class.
+ */
 public abstract class NativeManager {
+    private NativeManager() {}
 
+    /**
+     * The native library directory.
+     */
     public static final String NATIVE_LIB_DIR;
+
+    /**
+     * The native library extension.
+     */
     public static final String NATIVE_EXTENSION;
-    public static final String[] LOAD_ORDER = new String[] {
-            "cudart64_12", "cublasLt64_12", "cublas64_12", "openblas", "ggml-base", "ggml-cpu", "ggml-cuda", "ggml-blas", "ggml-metal", "ggml-vulkan", "ggml", "qwen3asr4j"
+
+    private static final String[] LOAD_ORDER = new String[] {
+            "cudart64_12", "cublasLt64_12", "cublas64_12", "ggml-base", "ggml-cpu", "ggml-cuda", "ggml-blas", "ggml-metal", "ggml-vulkan", "ggml", "qwen3asr4j"
     };
 
     static {

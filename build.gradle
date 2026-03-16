@@ -3,10 +3,11 @@ import java.nio.file.StandardCopyOption
 
 plugins {
     id 'java'
+    id 'org.jreleaser' version '1.23.0'
 }
 
 group = 'io.github.jaffe2718'
-version = '1.0.0'
+version = project.version
 
 repositories {
     mavenCentral()
@@ -22,8 +23,8 @@ dependencies {
 }
 
 tasks.register("compileCpp", Exec) {
-    def cudaEnabled = System.getProperty("GGML_CUDA", "OFF")
-    def vulkanEnabled = System.getProperty("GGML_VULKAN", "OFF")
+    def cudaEnabled = System.getenv("GGML_CUDA") == "ON" ? "ON" : "OFF"
+    def vulkanEnabled = System.getenv("GGML_VULKAN") == "ON" ? "ON" : "OFF"
     def osShort = {
         def os = System.getProperty("os.name").toLowerCase()
         if (os.contains("win")) {
@@ -73,6 +74,70 @@ tasks.register("compileCpp", Exec) {
     }
 }
 
+tasks.register("sourceJar", Jar) {
+    archiveClassifier.set("sources")
+    from sourceSets.main.allSource
+}
+
+tasks.register("javadocJar", Jar) {
+    archiveClassifier.set("javadoc")
+    from javadoc
+}
+
+tasks.register("prepareZipsForRelease", Exec) {    // for GitHub Releases
+    file("release").mkdirs()
+    for (def native_dir in [
+            'linux-arm64-vulkan',
+            'linux-x64-cuda',
+            'linux-x64-vulkan',
+            'src/main/resources/linux-arm64',
+            'src/main/resources/linux-x64',
+            'src/main/resources/mac-arm64',
+            'src/main/resources/mac-x64',
+            'src/main/resources/win-x64',
+            'win-x64-cuda',
+            'win-x64-vulkan']) {
+        // put *.dll | *.so | *.dylib from `native_dir=[src/main/resources]/$various` into `release/$various.zip`
+        if (!file(native_dir).exists()) continue
+        def zipFile = file("release/${native_dir.split('/')[-1]}.zip")
+        zipFile.delete()
+        commandLine "zip", "-rj", zipFile.absolutePath, native_dir
+        if (!native_dir.startsWith("src/main/resources")) {
+            commandLine "rm", "-rf", native_dir
+        }
+    }
+}
+
 test {
     useJUnitPlatform()
+}
+
+jreleaser {
+    signing {
+        active = 'ALWAYS'
+        armored = true
+    }
+
+    project {
+        name = "qwen3asr4j"
+        description = "Java binding for Qwen3 ASR"
+        version = rootProject.version
+        license = "Apache-2.0"
+    }
+
+    deploy {
+        maven {
+            mavenCentral {
+                sonatype {
+                    active = 'ALWAYS'
+                    url = 'https://central.sonatype.com/api/v1/publisher'
+                    stagingRepository('build/staging-deploy')
+
+                    // Double the retry delay as publishing takes a long time
+                    // Alternatively you can set JRELEASER_MAVENCENTRAL_STAGE: UPLOAD and manually publish
+                    retryDelay = 40
+                }
+            }
+        }
+    }
 }
