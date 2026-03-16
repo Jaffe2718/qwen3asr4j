@@ -25,6 +25,9 @@ jobs:
 
         steps:
             -   uses: actions/checkout@v6
+                with:
+                    submodules: true
+                    fetch-depth: 1
 
             -   uses: actions/setup-java@v5
                 with:
@@ -135,6 +138,9 @@ jobs:
             GGML_VULKAN: ${{ matrix.ggml_vulkan }}
         steps:
             -   uses: actions/checkout@v6
+                with:
+                    submodules: true
+                    fetch-depth: 1
 
             -   uses: jlumbroso/free-disk-space@main
                 with:
@@ -259,6 +265,9 @@ jobs:
         runs-on: ${{ matrix.runner }}
         steps:
             -   uses: actions/checkout@v6
+                with:
+                    submodules: true
+                    fetch-depth: 1
 
             -   uses: actions/setup-java@v5
                 with:
@@ -302,6 +311,9 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@v6
+                with:
+                    submodules: true
+                    fetch-depth: 1
 
             -   uses: jlumbroso/free-disk-space@main
                 with:
