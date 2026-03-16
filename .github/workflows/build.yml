@@ -53,8 +53,9 @@ jobs:
                     Invoke-WebRequest -Uri https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-asr-1.7b-q4_1.gguf?download=true -OutFile qwen3-asr-1.7b-q4_1.gguf
 
             -   name: Compile
+                shell: powershell
                 run: |
-                    ./gradlew compileCpp --info
+                    ./gradlew compileCpp
 
             -   name: Test                   # cpu/vulkan
                 if: matrix.ggml_cuda == 'OFF'
@@ -206,7 +207,7 @@ jobs:
             -   name: Compile
                 run: |
                     chmod +x ./gradlew
-                    ./gradlew compileCpp --info
+                    ./gradlew compileCpp
 
             -   name: Test
                 if: matrix.ggml_cuda == 'OFF'
@@ -272,7 +273,7 @@ jobs:
             -   name: Compile
                 run: |
                     chmod +x ./gradlew
-                    ./gradlew compileCpp --info
+                    ./gradlew compileCpp
 
             -   name: Test
                 run: |
