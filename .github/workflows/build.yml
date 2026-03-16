@@ -433,3 +433,5 @@ jobs:
                     files: | 
                         release/*.zip
                         build/libs/*.jar
+                env:
+                    GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
