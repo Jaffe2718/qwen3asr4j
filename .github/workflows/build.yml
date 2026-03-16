@@ -59,6 +59,7 @@ jobs:
 
             -   name: Test                   # cpu/vulkan
                 if: matrix.ggml_cuda == 'OFF'
+                shell: powershell
                 run: |
                     ./gradlew test
 
