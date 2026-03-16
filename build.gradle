@@ -119,7 +119,7 @@ jreleaser {
     }
 
     project {
-        name = "qwen3asr4j"
+        name = rootProject.name
         description = "Java binding for Qwen3 ASR"
         version = rootProject.version
         license = "Apache-2.0"
@@ -132,9 +132,6 @@ jreleaser {
                     active = 'ALWAYS'
                     url = 'https://central.sonatype.com/api/v1/publisher'
                     stagingRepository('build/staging-deploy')
-
-                    // Double the retry delay as publishing takes a long time
-                    // Alternatively you can set JRELEASER_MAVENCENTRAL_STAGE: UPLOAD and manually publish
                     retryDelay = 40
                 }
             }

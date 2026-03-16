@@ -3,7 +3,7 @@
 Convert HuggingFace Qwen3-ASR and Qwen3-ForcedAligner models to GGUF format.
 https://huggingface.co/Qwen/Qwen3-ASR-0.6B/
 https://huggingface.co/Qwen/Qwen3-ASR-1.7B/
-https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B
+https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B/
 
 Usage:
     python scripts/convert_hf_to_gguf.py \

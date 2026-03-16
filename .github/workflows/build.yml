@@ -412,7 +412,6 @@ jobs:
                     ./gradlew prepareZipsForRelease
 
             -   name: Publish to maven central
-                if: github.repository == 'Jaffe2718/qwen3asr4j'
                 run: ./gradlew jreleaserDeploy --stacktrace
                 env:
                     JRELEASER_MAVENCENTRAL_STAGE: UPLOAD # why the hell doesn't publish work
@@ -427,7 +426,6 @@ jobs:
                     echo "tag_name=v$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*\(.*\)[[:space:]]*$/\1/p' gradle.properties)" >> $GITHUB_OUTPUT
 
             -   uses: softprops/action-gh-release@v2
-                if: github.repository == 'Jaffe2718/qwen3asr4j'
                 with:
                     draft: true
                     tag_name: ${{ steps.set_tag_name.outputs.tag_name }}

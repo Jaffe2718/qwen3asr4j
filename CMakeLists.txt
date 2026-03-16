@@ -26,6 +26,10 @@ if (UNIX)
     set(CMAKE_INSTALL_FOLLOW_SYMLINK_CHAIN OFF CACHE BOOL "Do not follow symlinks on install" FORCE)
 endif ()
 
+if (MSVC)
+    add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
+    add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+endif ()
 
 set(JAVA_AWT_LIBRARY NotNeeded)
 set(JAVA_JVM_LIBRARY NotNeeded)
