@@ -20,11 +20,11 @@ on [qwen3-asr.cpp](https://github.com/predict-woo/qwen3-asr.cpp) with modificati
 |-------------|-----------------------------------|
 | linux-arm64 | CPU / <u>CUDA</u> / <u>Vulkan</u> |
 | linux-x64   | CPU / <u>CUDA</u> / <u>Vulkan</u> |
-| mac-arm64   | CPU                               |
-| mac-x64     | CPU                               |
+| mac-arm64   | CPU / <u>Metal</u>                |
+| mac-x64     | CPU / <u>Metal</u>                |
 | win-x64     | CPU / <u>CUDA</u> / <u>Vulkan</u> |
 
-> **Note**: CUDA and Vulkan support require additional native libraries to be installed.
+> **Note**: CUDA, Vulkan, and Metal support require additional native libraries to be installed.
 
 | Model Name               | Size         | Type           | Description                            |
 |--------------------------|--------------|----------------|----------------------------------------|
