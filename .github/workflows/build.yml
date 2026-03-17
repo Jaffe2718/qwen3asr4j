@@ -80,7 +80,7 @@ jobs:
                 if: matrix.ggml_cuda == 'OFF'
                 shell: powershell
                 run: |
-                    Remove-Item qwen3-*.gguf -Force -ErrorAction SilentlyContinue
+                    Remove-Item models/ -Recurse -Force -ErrorAction SilentlyContinue
 
             -   name: Add CUDA dlls
                 if: matrix.ggml_cuda == 'ON'
@@ -236,7 +236,7 @@ jobs:
             -   name: Clean up models
                 if: matrix.ggml_cuda == 'OFF'
                 run: |
-                    rm -rf qwen3-*.gguf
+                    rm -rf models
 
             -   name: Upload CPU natives
                 uses: actions/upload-artifact@v4
@@ -305,7 +305,7 @@ jobs:
 
             -   name: Clean up models
                 run: |
-                    rm -rf qwen3-*.gguf
+                    rm -rf models
 
             -   name: Upload Mac natives
                 uses: actions/upload-artifact@v4

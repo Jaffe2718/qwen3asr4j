@@ -88,6 +88,8 @@ tasks.register("compileCpp") {
                 Files.copy(f.toPath(), targetDir.toPath().resolve(f.name), StandardCopyOption.REPLACE_EXISTING)
             }
         }
+        // delete buildDir
+        buildDir.deleteDir()
     }
 }
 
@@ -101,9 +103,10 @@ tasks.register("javadocJar", Jar) {
     from javadoc
 }
 
-tasks.register("prepareZipsForRelease", Exec) {    // for GitHub Releases
-    file("release").mkdirs()
-    for (def native_dir in [
+tasks.register("prepareZipsForRelease") {    // for GitHub Releases
+    def releaseDir = file("release")
+    releaseDir.mkdirs()
+    def native_dirs = [
             'linux-arm64-vulkan',
             'linux-x64-cuda',
             'linux-x64-vulkan',
@@ -113,14 +116,22 @@ tasks.register("prepareZipsForRelease", Exec) {    // for GitHub Releases
             'src/main/resources/mac-x64',
             'src/main/resources/win-x64',
             'win-x64-cuda',
-            'win-x64-vulkan']) {
-        // put *.dll | *.so | *.dylib from `native_dir=[src/main/resources]/$various` into `release/$various.zip`
-        if (!file(native_dir).exists()) continue
-        def zipFile = file("release/${native_dir.split('/')[-1]}.zip")
+            'win-x64-vulkan'
+    ]
+    native_dirs.each { native_dir ->
+        def nativeDir = file(native_dir)
+        if (!nativeDir.exists()) {
+            return
+        }
+        def zipFile = file("${releaseDir}/${native_dir.split('/')[-1]}.zip")
         zipFile.delete()
-        commandLine "zip", "-rj", zipFile.absolutePath, native_dir
+        ant.zip(
+                destfile: zipFile,
+                basedir: nativeDir,
+                includes: "**/*.dll, **/*.so, **/*.dylib"
+        )
         if (!native_dir.startsWith("src/main/resources")) {
-            commandLine "rm", "-rf", native_dir
+            delete(nativeDir)
         }
     }
 }

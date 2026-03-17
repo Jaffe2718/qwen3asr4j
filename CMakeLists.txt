@@ -61,11 +61,11 @@ add_library(qwen3asr4j SHARED
 )
 
 if (GGML_VULKAN)
-    target_link_libraries(qwen3asr4j PRIVATE whisper ggml ggml-base ggml-cpu ggml-vulkan Threads::Threads Vulkan::Vulkan)
+    target_link_libraries(qwen3asr4j PRIVATE ggml ggml-base ggml-cpu ggml-vulkan Threads::Threads Vulkan::Vulkan)
     target_include_directories(qwen3asr4j PRIVATE ${Vulkan_INCLUDE_DIRS})
 elseif (GGML_CUDA)
     target_compile_definitions(qwen3asr4j PUBLIC GGML_USE_CUDA)
-    target_link_libraries(qwen3asr4j PRIVATE whisper ggml ggml-base ggml-cpu ggml-cuda Threads::Threads )
+    target_link_libraries(qwen3asr4j PRIVATE ggml ggml-base ggml-cpu ggml-cuda Threads::Threads )
 else ()
     target_link_libraries(qwen3asr4j PRIVATE ggml ggml-base ggml-cpu Threads::Threads)
 endif ()
