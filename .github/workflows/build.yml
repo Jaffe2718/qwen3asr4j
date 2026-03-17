@@ -264,11 +264,22 @@ jobs:
         strategy:
             matrix:
                 include:
-                    -   name: mac-x64
-                        runner: macos-14
                     -   name: mac-arm64
+                        runner: macos-14
+                        ggml_metal: 'OFF'
+                    -   name: mac-arm64-metal
+                        runner: macos-14
+                        ggml_metal: 'ON'
+                    -   name: mac-x64
                         runner: macos-15-intel
+                        ggml_metal: 'OFF'
+                    -   name: mac-x64-metal
+                        runner: macos-14
+                        ggml_metal: 'ON'
+
         runs-on: ${{ matrix.runner }}
+        env:
+            GGML_METAL: ${{ matrix.ggml_metal }}
         steps:
             -   uses: actions/checkout@v6
                 with:
@@ -294,6 +305,7 @@ jobs:
                     xcrun ./gradlew compileCpp
 
             -   name: Test
+                if: matrix.ggml_metal == 'OFF'
                 run: |
                     ./gradlew test --info --stacktrace
 
@@ -308,10 +320,18 @@ jobs:
                     rm -rf models
 
             -   name: Upload Mac natives
+                if: matrix.ggml_metal == 'OFF'
                 uses: actions/upload-artifact@v4
                 with:
                     name: ${{ matrix.name }}-natives
                     path: src/main/resources/${{ matrix.name }}/*
+
+            -   name: Upload Mac Metal natives
+                if: matrix.ggml_metal == 'ON'
+                uses: actions/upload-artifact@v4
+                with:
+                    name: ${{ matrix.name }}-natives
+                    path: ${{ matrix.name }}/*
 
 
     publish:
@@ -375,6 +395,16 @@ jobs:
                 with:
                     name: linux-arm64-vulkan-natives
                     path: linux-arm64-vulkan/
+
+            -   uses: actions/download-artifact@v4
+                with:
+                    name: mac-x64-metal-natives
+                    path: mac-x64-metal/
+
+            -   uses: actions/download-artifact@v4
+                with:
+                    name: mac-arm64-metal-natives
+                    path: mac-arm64-metal/
 
             -   uses: actions/download-artifact@v4
                 with:
