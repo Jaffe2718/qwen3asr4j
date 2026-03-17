@@ -124,7 +124,7 @@ public class TestQwen3ASR {
             return;
         }
 
-        Qwen3ASR asr = new Qwen3ASR("qwen3-asr-0.6b-q8_0.gguf", LOGGER);
+        Qwen3ASR asr = new Qwen3ASR("models/qwen3-asr-0.6b-q8_0.gguf", LOGGER);
         LOGGER.info("asr.isLoaded = {}", asr.isLoaded());
         for (Map.Entry<String, Number> entry : Objects.requireNonNull(asr.getConfig()).entrySet()) {
             LOGGER.info("asr.config[{} = {}]", entry.getKey(), entry.getValue());
@@ -136,7 +136,7 @@ public class TestQwen3ASR {
         printTranscribeResult(resultEnUs);
         asr.close();
 
-        ForcedAligner aligner = new ForcedAligner("qwen3-forced-aligner-0.6b-f16.gguf", LOGGER);
+        ForcedAligner aligner = new ForcedAligner("models/qwen3-forced-aligner-0.6b-f16.gguf", LOGGER);
         LOGGER.info("aligner.isLoaded = {}", aligner.isLoaded());
         LOGGER.info("aligner.errorMsg = {}", aligner.getError());
         for (Map.Entry<String, Number> entry : Objects.requireNonNull(aligner.getHparams()).entrySet()) {
@@ -156,7 +156,7 @@ public class TestQwen3ASR {
         } else {
             return;
         }
-        Qwen3ASR asr = new Qwen3ASR(Path.of("qwen3-asr-1.7b-q4_1.gguf").toAbsolutePath().toString(), LOGGER);
+        Qwen3ASR asr = new Qwen3ASR(Path.of("models/qwen3-asr-1.7b-q4_1.gguf").toAbsolutePath().toString(), LOGGER);
         asr.setProgressCallback(TestQwen3ASR::testCallback);
         LOGGER.info("isLoaded = {}", asr.isLoaded());
         LOGGER.info("transcribing {} samples in Chinese from samples/IC0936W0337.wav", sampleZhCn.length);
