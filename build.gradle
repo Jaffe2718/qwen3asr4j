@@ -34,7 +34,7 @@ tasks.register("cmakeConfigure", Exec) {
     def platform = "${osShort}-${archShort}"
 
     file("cpp-${platform}").mkdirs()
-    commandLine = [
+    def cmakeCommand = [
             "cmake",
             "-B", "cpp-${platform}",
             "-S", ".",
@@ -42,6 +42,15 @@ tasks.register("cmakeConfigure", Exec) {
             "-DGGML_CUDA=${cudaEnabled}",
             "-DGGML_VULKAN=${vulkanEnabled}"
     ]
+    if (osShort == "mac") {
+        cmakeCommand.add("-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0")
+        if (archShort == "arm64") {
+            cmakeCommand.add("-DCMAKE_OSX_ARCHITECTURES=arm64")
+        } else if (archShort == "x64") {
+            cmakeCommand.add("-DCMAKE_OSX_ARCHITECTURES=x86_64")
+        }
+    }
+    commandLine cmakeCommand
 }
 
 tasks.register("cmakeBuild", Exec) {

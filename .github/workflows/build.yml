@@ -291,7 +291,7 @@ jobs:
             -   name: Compile
                 run: |
                     chmod +x ./gradlew
-                    ./gradlew compileCpp
+                    xcrun ./gradlew compileCpp
 
             -   name: Test
                 run: |
