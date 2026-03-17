@@ -1,11 +1,8 @@
-#include <format>
-
 #include "qwen3_asr.h"
+#include "forced_aligner.h"
 
 #include <unordered_map>
 #include <jni.h>
-
-#include "forced_aligner.h"
 
 int available_qwen3_asr_id = 0;
 int available_forced_aligner_id = 0;
@@ -198,7 +195,7 @@ extern "C" {
             qwen3_asr_map.erase(ctx_id);
             callback_map.erase(ctx_id);
         }
-        slf4j_info(env, thiz, std::format("Qwen3ASR context {} freed", ctx_id).c_str());
+        slf4j_info(env, thiz, ("Qwen3ASR context " + std::to_string(ctx_id) + " freed").c_str());
     }
 
     /**
@@ -340,7 +337,7 @@ extern "C" {
 
         // Load model
         const bool success = forced_aligner_map[ctx_id].load_model(model_path);
-        slf4j_info(env, thiz, std::format("ForcedAligner<{}> model load state: {}", ctx_id, success ? "success" : "failed").c_str());
+        slf4j_info(env, thiz, ("ForcedAligner<" + std::to_string(ctx_id) + "> model load state: " + (success ? "success" : "failed")).c_str());
 
         // Release Java string
         env->ReleaseStringUTFChars(modelPath, model_path);
@@ -363,7 +360,7 @@ extern "C" {
         if (forced_aligner_map.contains(ctx_id)) {
             forced_aligner_map.erase(ctx_id);
         }
-        slf4j_info(env, thiz, std::format("ForcedAligner<{}> context freed", ctx_id).c_str());
+        slf4j_info(env, thiz, ("ForcedAligner<" + std::to_string(ctx_id) + "> context freed").c_str());
     }
 
     /**
