@@ -69,6 +69,10 @@ else ()
     target_link_libraries(qwen3asr4j PRIVATE ggml ggml-base ggml-cpu)
 endif ()
 
+if (APPLE)
+    target_link_libraries(qwen3asr4j PRIVATE Threads::Threads "-framework Accelerate")
+endif ()
+
 target_include_directories(qwen3asr4j PRIVATE
         ${JNI_INCLUDE_DIRS}
         ggml/include
