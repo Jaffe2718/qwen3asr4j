@@ -136,7 +136,7 @@ public class TestQwen3ASR {
         printTranscribeResult(resultEnUs);
         asr.close();
 
-        ForcedAligner aligner = new ForcedAligner("models/qwen3-forced-aligner-0.6b-f16.gguf", LOGGER);
+        ForcedAligner aligner = new ForcedAligner("models/qwen3-forcedaligner-0.6b-f16.gguf", LOGGER);
         LOGGER.info("aligner.isLoaded = {}", aligner.isLoaded());
         LOGGER.info("aligner.errorMsg = {}", aligner.getError());
         for (Map.Entry<String, Number> entry : Objects.requireNonNull(aligner.getHparams()).entrySet()) {
