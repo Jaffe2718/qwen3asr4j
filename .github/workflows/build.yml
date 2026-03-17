@@ -274,7 +274,7 @@ jobs:
                         runner: macos-15-intel
                         ggml_metal: 'OFF'
                     -   name: mac-x64-metal
-                        runner: macos-14
+                        runner: macos-15-intel
                         ggml_metal: 'ON'
 
         runs-on: ${{ matrix.runner }}
@@ -292,6 +292,7 @@ jobs:
                      java-version: '21'
 
             -   name: Download models      # for test
+                if: matrix.ggml_metal == 'OFF'
                 run: |
                     mkdir -p models
                     curl -L -o models/qwen3-asr-0.6b-q8_0.gguf https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF/resolve/main/qwen3-asr-0.6b-q8_0.gguf?download=true
@@ -311,11 +312,12 @@ jobs:
 
             -   name: Publish test report
                 uses: mikepenz/action-junit-report@v5
-                if: success() || failure()
+                if: matrix.ggml_metal == 'OFF' && (success() || failure())
                 with:
                     report_paths: '**/build/test-results/**/*.xml'
 
             -   name: Clean up models
+                if: matrix.ggml_metal == 'OFF'
                 run: |
                     rm -rf models
 
