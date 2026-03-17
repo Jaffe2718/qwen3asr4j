@@ -63,7 +63,7 @@ jobs:
                 if: matrix.ggml_cuda == 'OFF'
                 shell: powershell
                 run: |
-                    ./gradlew test
+                    ./gradlew test --info --stacktrace
 
             -   name: Publish test report
                 uses: mikepenz/action-junit-report@v5
@@ -218,7 +218,7 @@ jobs:
             -   name: Test
                 if: matrix.ggml_cuda == 'OFF'
                 run: |
-                    ./gradlew test
+                    ./gradlew test --info --stacktrace
 
             -   name: Publish test report
                 uses: mikepenz/action-junit-report@v5
@@ -286,7 +286,7 @@ jobs:
 
             -   name: Test
                 run: |
-                    ./gradlew test
+                    ./gradlew test --info --stacktrace
 
             -   name: Publish test report
                 uses: mikepenz/action-junit-report@v5
