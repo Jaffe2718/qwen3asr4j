@@ -27,10 +27,6 @@ if (UNIX)
     set(CMAKE_INSTALL_FOLLOW_SYMLINK_CHAIN OFF CACHE BOOL "Do not follow symlinks on install" FORCE)
 endif ()
 
-if (MSVC)
-    add_compile_options(/utf-8)
-endif ()
-
 set(JAVA_AWT_LIBRARY NotNeeded)
 set(JAVA_JVM_LIBRARY NotNeeded)
 
@@ -68,6 +64,11 @@ elseif (GGML_CUDA)
     target_link_libraries(qwen3asr4j PRIVATE ggml ggml-base ggml-cpu ggml-cuda Threads::Threads)
 else ()
     target_link_libraries(qwen3asr4j PRIVATE ggml ggml-base ggml-cpu Threads::Threads)
+endif ()
+
+if (MSVC)
+    target_compile_options(qwen3asr4j PRIVATE "$<$<C_COMPILER_ID:MSVC>:/utf-8>")
+    target_compile_options(qwen3asr4j PRIVATE "$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 endif ()
 
 if (APPLE)
