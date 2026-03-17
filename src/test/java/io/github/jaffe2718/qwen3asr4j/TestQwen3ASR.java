@@ -90,6 +90,7 @@ public class TestQwen3ASR {
     public static void prepare() {
         LOGGER.info("GGML_CUDA = {}", GGML_CUDA);
         LOGGER.info("GGML_VULKAN = {}", GGML_VULKAN);
+        LOGGER.info("user.dir = {}", System.getProperty("user.dir"));
         try (FileInputStream wavInEnUs = new FileInputStream("samples/jfk.wav")) {
             wavInEnUs.skip(44);
             byte[] bytesEnUs = new byte[wavInEnUs.available()];
