@@ -86,7 +86,7 @@ jobs:
                 if: matrix.ggml_cuda == 'ON'
                 shell: powershell
                 run: |
-                    Invoke-WebRequest -Uri https://github.com/ggml-org/llama.cpp/releases/download/b8368/cudart-llama-bin-win-cuda-12.4-x64.zip -OutFile cudart-llama-bin-win-cuda-12.4-x64.zip
+                    Start-BitsTransfer -Source "https://github.com/ggml-org/llama.cpp/releases/download/b8368/cudart-llama-bin-win-cuda-12.4-x64.zip" -Destination "cudart-llama-bin-win-cuda-12.4-x64.zip"
                     Expand-Archive -Path cudart-llama-bin-win-cuda-12.4-x64.zip -DestinationPath ${{ matrix.name }}
                     Remove-Item cudart-llama-bin-win-cuda-12.4-x64.zip -Force
 
