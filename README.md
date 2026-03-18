@@ -52,6 +52,7 @@ public class Example {
     private static float[] SAMPLES;
     
     public static void main(String[] args) throws Exception {
+        
         // git clone https://huggingface.co/Qwen/Qwen3-ASR-1.7B/
         // git clone https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B/
         // python scripts/convert_hf_to_gguf.py --input Qwen3-ASR-1.7B --output qwen3-asr-1.7b-f16.gguf --type f16
@@ -81,6 +82,7 @@ public class Example {
     }
     
     static {
+        NativeManager.loadLibrary(LOGGER);
         try (FileInputStream wavInEnUs = new FileInputStream("samples/jfk.wav")) {
             wavInEnUs.skip(44);
             byte[] bytesEnUs = new byte[wavInEnUs.available()];
