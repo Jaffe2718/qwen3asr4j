@@ -10,6 +10,11 @@ plugins {
 group = 'io.github.jaffe2718'
 version = project.version
 
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
 repositories {
     mavenCentral()
 }
@@ -106,16 +111,6 @@ tasks.register("compileCpp") {
         // delete buildDir
         buildDir.deleteDir()
     }
-}
-
-tasks.register("sourceJar", Jar) {
-    archiveClassifier.set("sources")
-    from sourceSets.main.allSource
-}
-
-tasks.register("javadocJar", Jar) {
-    archiveClassifier.set("javadoc")
-    from javadoc
 }
 
 tasks.register("prepareZipsForRelease") {    // for GitHub Releases
