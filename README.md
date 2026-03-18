@@ -6,7 +6,7 @@ on [qwen3-asr.cpp](https://github.com/predict-woo/qwen3-asr.cpp) with modificati
 
 ## Features
 
-- **High Performance**: Leverages GGML for efficient inference on CPU, CUDA, and Vulkan
+- **High Performance**: Leverages GGML for efficient inference on CPU, Metal, and Vulkan
 - **Multi-platform Support**: Windows, Linux, and macOS
 - **Dual Functionality**:
     - Speech recognition (ASR) - convert audio to text
@@ -16,15 +16,15 @@ on [qwen3-asr.cpp](https://github.com/predict-woo/qwen3-asr.cpp) with modificati
 
 ## Supports
 
-| Platform    | Supported                         |
-|-------------|-----------------------------------|
-| linux-arm64 | CPU / <u>CUDA</u> / <u>Vulkan</u> |
-| linux-x64   | CPU / <u>CUDA</u> / <u>Vulkan</u> |
-| mac-arm64   | CPU / <u>Metal</u>                |
-| mac-x64     | CPU / <u>Metal</u>                |
-| win-x64     | CPU / <u>CUDA</u> / <u>Vulkan</u> |
+| Platform    | Supported           |
+|-------------|---------------------|
+| linux-arm64 | CPU / <u>Vulkan</u> |
+| linux-x64   | CPU / <u>Vulkan</u> |
+| mac-arm64   | CPU / <u>Metal</u>  |
+| mac-x64     | CPU / <u>Metal</u>  |
+| win-x64     | CPU / <u>Vulkan</u> |
 
-> **Note**: CUDA, Vulkan, and Metal support require additional native libraries to be installed.
+> **Note**: Vulkan, and Metal support require additional native libraries to be installed.
 
 | Model Name               | Size         | Type           | Description                            |
 |--------------------------|--------------|----------------|----------------------------------------|
@@ -82,7 +82,7 @@ public class Example {
     }
     
     static {
-        NativeManager.loadLibrary(LOGGER);
+        NativeManager.loadLibrary(/*Path.of("path/to/native/lib") ,*/LOGGER);
         try (FileInputStream wavInEnUs = new FileInputStream("samples/jfk.wav")) {
             wavInEnUs.skip(44);
             byte[] bytesEnUs = new byte[wavInEnUs.available()];
@@ -113,7 +113,6 @@ public class Example {
    - Install CMake, MSVC 2022+ (Windows), GCC 11+ (Linux/MacOS), JDK 21+, and Gradle 8.14.3
    - Set up environment variables for JDK and Gradle
    - Set environment variables:
-       - `GGML_CUDA=[ON/OFF]` (default: OFF) - Enable CUDA support
        - `GGML_VULKAN=[ON/OFF]` (default: OFF) - Enable Vulkan support
 
 2. **Clone the repository**
@@ -140,7 +139,7 @@ python scripts/convert_hf_to_gguf.py --input path/to/hf/model --output model.ggu
 ## Performance Tips
 
 - **Model Selection**: Use Qwen3-ASR-0.6B for faster inference, Qwen3-ASR-1.7B for higher accuracy
-- **Hardware Acceleration**: Enable CUDA or Vulkan for significantly faster inference
+- **Hardware Acceleration**: Enable Metal or Vulkan for significantly faster inference
 - **Batch Processing**: Process multiple audio files in parallel for better throughput
 - **Audio Preprocessing**: Ensure audio is resampled to 16kHz for optimal performance
 
