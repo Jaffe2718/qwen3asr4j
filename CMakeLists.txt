@@ -11,6 +11,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 option(GGML_CUDA "ggml: enable CUDA backend" OFF)
 option(GGML_VULKAN "ggml: enable Vulkan backend" OFF)
 option(GGML_METAL "ggml: enable Metal backend" OFF)
+option(GGML_STATIC "ggml: build static library" OFF)
 
 set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_SOVERWRITE ON)
 set(CMAKE_INSTALL_CREATE_SYMLINK OFF)

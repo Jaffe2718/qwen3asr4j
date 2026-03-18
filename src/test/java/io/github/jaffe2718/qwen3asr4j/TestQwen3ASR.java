@@ -43,9 +43,6 @@ public class TestQwen3ASR {
     public static boolean isCpuOnly() {
         return GGML_CUDA.equals("OFF") && GGML_VULKAN.equals("OFF");
     }
-    public static boolean isVulkanEnabled() {
-        return GGML_CUDA.equals("OFF") && GGML_VULKAN.equals("ON");
-    }
 
     private static float @NotNull [] toFloatArray(byte @NotNull [] data) {
         float[] result = new float[data.length / 2];
@@ -118,8 +115,10 @@ public class TestQwen3ASR {
     public void test0_6b() throws IOException, URISyntaxException {
         if (isCpuOnly()) {
             NativeManager.loadLibrary(LOGGER);
-        } else if (isVulkanEnabled()) {
+        } else if (GGML_VULKAN.equals("ON")) {
             NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-vulkan"), LOGGER);
+        } else if (GGML_CUDA.equals("ON")) {
+            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-cuda"), LOGGER);
         } else {
             return;
         }
@@ -151,8 +150,10 @@ public class TestQwen3ASR {
     public void test1_7b() throws IOException, URISyntaxException {
         if (isCpuOnly()) {
             NativeManager.loadLibrary(LOGGER);
-        } else if (isVulkanEnabled()) {
+        } else if (GGML_VULKAN.equals("ON")) {
             NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-vulkan"), LOGGER);
+        } else if (GGML_CUDA.equals("ON")) {
+            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-cuda"), LOGGER);
         } else {
             return;
         }
