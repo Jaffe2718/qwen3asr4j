@@ -57,7 +57,7 @@ tasks.register("cmakeConfigure", Exec) {
             cmakeCommand.add("-DCMAKE_OSX_ARCHITECTURES=x86_64")
         }
     }
-    if (vulkanEnabled == "ON" || cudaEnabled == "ON") {
+    if (osShort == "win" && (vulkanEnabled == "ON" || cudaEnabled == "ON")) {
         cmakeCommand.add("-DGGML_STATIC=ON")
     }
     commandLine cmakeCommand
