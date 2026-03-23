@@ -214,8 +214,8 @@ extern "C" {
         // get audio samples
         jfloat *samples_ptr = env->GetFloatArrayElements(samples, nullptr);
         const auto lang = (jstring) env->GetObjectField(params, env->GetFieldID(env->GetObjectClass(params), "language", "Ljava/lang/String;"));
-        const char *lang_str = env->GetStringUTFChars(lang, nullptr);
-        // convert java array to c++ array
+        const char * lang_str = env->GetStringUTFChars(lang, nullptr);
+        // create transcribe_params
         qwen3_asr::transcribe_params t_params {
             env->GetIntField(params, env->GetFieldID(env->GetObjectClass(params), "maxTokens", "I")),
             lang_str,
@@ -233,6 +233,45 @@ extern "C" {
 
         // release resources
         env->ReleaseFloatArrayElements(samples, samples_ptr, 0);
+        env->ReleaseStringUTFChars(lang, lang_str);
+
+        return res_obj;
+    }
+
+    /**
+     * Class:     io_github_jaffe2718_qwen3asr4j_Qwen3ASR
+     * Method:    transcribeFile
+     * Signature: (Ljava/lang/String;Lio/github/jaffe2718/qwen3asr4j/TranscribeParams;)Lio/github/jaffe2718/qwen3asr4j/TranscribeResult;
+     */
+    JNIEXPORT jobject JNICALL Java_io_github_jaffe2718_qwen3asr4j_Qwen3ASR_transcribeFile(JNIEnv *env, jobject thiz, jstring audioPath, jobject params) {
+        jint ctx_id = env->GetIntField(thiz, env->GetFieldID(env->GetObjectClass(thiz), "ctxId", "I"));
+        if (!qwen3_asr_map.contains(ctx_id)) {
+            env->ThrowNew(env->FindClass("java/lang/NullPointerException"), "Qwen3ASR context not loaded");
+            return nullptr;
+        }
+        // get model context (reference, not copy)
+        qwen3_asr::Qwen3ASR &ctx = qwen3_asr_map[ctx_id];
+        // get language
+        const auto lang = (jstring) env->GetObjectField(params, env->GetFieldID(env->GetObjectClass(params), "language", "Ljava/lang/String;"));
+        const char * lang_str = env->GetStringUTFChars(lang, nullptr);
+        const char * audio_path = env->GetStringUTFChars(audioPath, nullptr);
+        // create transcribe_params
+        qwen3_asr::transcribe_params t_params {
+            env->GetIntField(params, env->GetFieldID(env->GetObjectClass(params), "maxTokens", "I")),
+            lang_str,
+            env->GetIntField(params, env->GetFieldID(env->GetObjectClass(params), "nThreads", "I")),
+            (bool) env->GetBooleanField(params, env->GetFieldID(env->GetObjectClass(params), "printProgress", "Z")),
+            (bool) env->GetBooleanField(params, env->GetFieldID(env->GetObjectClass(params), "printTiming", "Z"))
+        };
+
+        qwen3_asr::transcribe_result res = ctx.transcribe(audio_path, t_params);
+
+        // create TranscribeResult object
+        jclass res_cls = env->FindClass("io/github/jaffe2718/qwen3asr4j/result/TranscribeResult");
+        jmethodID res_ctor = env->GetMethodID(res_cls, "<init>", "(Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;JJJJJ)V");
+        jobject res_obj = env->NewObject(res_cls, res_ctor, env->NewStringUTF(res.language.c_str()), env->NewStringUTF(res.text.c_str()), res.success, env->NewStringUTF(res.error_msg.c_str()), res.t_load_ms, res.t_mel_ms, res.t_encode_ms, res.t_decode_ms, res.t_total_ms);
+
+        // release resources
         env->ReleaseStringUTFChars(lang, lang_str);
 
         return res_obj;

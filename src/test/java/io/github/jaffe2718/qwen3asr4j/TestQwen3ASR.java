@@ -166,4 +166,24 @@ public class TestQwen3ASR {
         asr.close();
     }
 
+    @Test
+    public void testFile() throws IOException, URISyntaxException {
+        if (isCpuOnly()) {
+            NativeManager.loadLibrary(LOGGER);
+        } else if (GGML_VULKAN.equals("ON")) {
+            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-vulkan"), LOGGER);
+        } else if (GGML_CUDA.equals("ON")) {
+            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-cuda"), LOGGER);
+        } else {
+            return;
+        }
+        Qwen3ASR asr = new Qwen3ASR("models/qwen3-asr-0.6b-q8_0.gguf", LOGGER);
+        LOGGER.info("asr.isLoaded = {}", asr.isLoaded());
+        LOGGER.info("transcribing {} samples in English from samples/jfk.wav", sampleEnUs.length);
+        TranscribeResult resultEnUs = asr.transcribe("samples/jfk.wav", new TranscribeParams());
+        LOGGER.info("asr.errorMsg = {}", asr.getError());
+        printTranscribeResult(resultEnUs);
+        asr.close();
+    }
+
 }
