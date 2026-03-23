@@ -1,12 +1,12 @@
 #pragma once
 
-#include "ggml.h"
-#include "ggml-backend.h"
-#include "gguf.h"
-
+#include <ggml.h>
+#include <ggml-backend.h>
+#include <gguf.h>
 #include <string>
 #include <map>
 #include <vector>
+#include <memory>
 
 namespace qwen3_asr {
 
