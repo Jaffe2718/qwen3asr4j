@@ -2,10 +2,10 @@
 #define MMAN_MULTIPLATFORM_H
 
 #ifdef _WIN32
-
-namespace qwen3_asr {
 #include <windows.h>
 #include <io.h>
+
+namespace qwen3_asr {
 
 #define PROT_READ  0x01
 #define PROT_WRITE 0x02
@@ -103,9 +103,9 @@ namespace qwen3_asr {
 
 }  // namespace qwen3_asr
 #else
-    #include <sys/mman.h>
-    #include <unistd.h>
-    #define O_BINARY O_RDONLY
+#    include <sys/mman.h>
+#    include <unistd.h>
+#    define O_BINARY O_RDONLY
 #endif  // _WIN32
 
 #endif // MMAN_MULTIPLATFORM_H
