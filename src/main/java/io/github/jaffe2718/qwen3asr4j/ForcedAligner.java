@@ -34,7 +34,7 @@ public class ForcedAligner extends GGUFModelWrapper {
         return align(samples, samples.length, text, language);
     }
 
-     /**
+    /**
      * Align the audio samples with the text
      * @param samples the audio samples
      * @param text the text to align
@@ -43,6 +43,33 @@ public class ForcedAligner extends GGUFModelWrapper {
      */
     public AlignmentResult align(float[] samples, String text) {
         return align(samples, text, "");
+    }
+
+    /**
+     * Align the audio file with the text
+     * @param audioPath the path to the audio file
+     * @param text the text to align
+     * @param language the language of the text (default: "")
+     * @return the alignment result
+     * @see AlignmentResult
+     * @throws FileNotFoundException if the audio file does not exist
+     * @throws NullPointerException if the ForcedAligner is not loaded
+     */
+    public AlignmentResult align(String audioPath, String text, String language) throws FileNotFoundException, NullPointerException {
+        return alignFile(audioPath, text, language);
+    }
+
+    /**
+     * Align the audio file with the text
+     * @param audioPath the path to the audio file
+     * @param text the text to align
+     * @return the alignment result
+     * @see AlignmentResult
+     * @throws FileNotFoundException if the audio file does not exist
+     * @throws NullPointerException if the ForcedAligner is not loaded
+     */
+    public AlignmentResult align(String audioPath, String text) throws FileNotFoundException, NullPointerException {
+        return align(audioPath, text, "");
     }
 
     /**
@@ -79,7 +106,7 @@ public class ForcedAligner extends GGUFModelWrapper {
     @Override
     protected native void free();
 
-     /**
+    /**
      * Align the audio samples with the text
      * @param samples the audio samples
      * @param n_samples the number of samples
@@ -89,4 +116,12 @@ public class ForcedAligner extends GGUFModelWrapper {
      */
     private native AlignmentResult align(float[] samples, int n_samples, String text, String language) throws NullPointerException;
 
+    /**
+     * Align the audio file with the text
+     * @param audioPath the path to the audio file
+     * @param text the text to align
+     * @param language the language of the text (default: "")
+     * @return the alignment result
+     */
+    private native AlignmentResult alignFile(String audioPath, String text, String language) throws FileNotFoundException, NullPointerException;
 }

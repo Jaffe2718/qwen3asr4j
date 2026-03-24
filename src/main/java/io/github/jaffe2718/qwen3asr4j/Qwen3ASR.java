@@ -115,5 +115,5 @@ public class Qwen3ASR extends GGUFModelWrapper {
      * @param params the transcribe parameters
      * @return the transcribe result
      */
-    private native TranscribeResult transcribeFile(String audioPath, TranscribeParams params) throws FileNotFoundException;
+    private native TranscribeResult transcribeFile(String audioPath, TranscribeParams params) throws FileNotFoundException, NullPointerException;
 }

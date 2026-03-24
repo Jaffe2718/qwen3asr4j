@@ -177,6 +177,7 @@ public class TestQwen3ASR {
         } else {
             return;
         }
+
         Qwen3ASR asr = new Qwen3ASR("models/qwen3-asr-0.6b-q8_0.gguf", LOGGER);
         LOGGER.info("asr.isLoaded = {}", asr.isLoaded());
         LOGGER.info("transcribing {} samples in English from samples/jfk.wav", sampleEnUs.length);
@@ -184,6 +185,16 @@ public class TestQwen3ASR {
         LOGGER.info("asr.errorMsg = {}", asr.getError());
         printTranscribeResult(resultEnUs);
         asr.close();
+
+        ForcedAligner aligner = new ForcedAligner("models/qwen3-forcedaligner-0.6b-f16.gguf", LOGGER);
+        LOGGER.info("aligner.isLoaded = {}", aligner.isLoaded());
+        LOGGER.info("aligner.errorMsg = {}", aligner.getError());
+        for (Map.Entry<String, Number> entry : Objects.requireNonNull(aligner.getHparams()).entrySet()) {
+            LOGGER.info("aligner.hparams[{} = {}]", entry.getKey(), entry.getValue());
+        }
+        AlignmentResult alignmentResult = aligner.align("samples/jfk.wav", resultEnUs.text());
+        printAlignmentResult(alignmentResult);
+        aligner.close();
     }
 
 }

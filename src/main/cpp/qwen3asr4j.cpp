@@ -254,7 +254,14 @@ extern "C" {
         // get language
         const auto lang = (jstring) env->GetObjectField(params, env->GetFieldID(env->GetObjectClass(params), "language", "Ljava/lang/String;"));
         const char * lang_str = env->GetStringUTFChars(lang, nullptr);
+        // audio path
         const char * audio_path = env->GetStringUTFChars(audioPath, nullptr);
+        FILE *fp = fopen(audio_path, "rb");
+        if (!fp) {
+            env->ThrowNew(env->FindClass("java/io/FileNotFoundException"), "Failed to open audio file");
+            return nullptr;
+        }
+        fclose(fp);
         // create transcribe_params
         qwen3_asr::transcribe_params t_params {
             env->GetIntField(params, env->GetFieldID(env->GetObjectClass(params), "maxTokens", "I")),
@@ -421,6 +428,58 @@ extern "C" {
             qwen3_asr::alignment_result result = ctx.align(samples_vector.data(), n_samples, text_str, language_str);
             env->ReleaseStringUTFChars(text, text_ptr);
             env->ReleaseStringUTFChars(language, language_ptr);
+
+            // create result object
+            jclass result_class = env->FindClass("io/github/jaffe2718/qwen3asr4j/result/AlignmentResult");
+            jmethodID result_constructor = env->GetMethodID(result_class, "<init>", "([Lio/github/jaffe2718/qwen3asr4j/result/AlignedWord;ZLjava/lang/String;JJJJ)V");
+            jobjectArray words_array = env->NewObjectArray(result.words.size(), env->FindClass("io/github/jaffe2718/qwen3asr4j/result/AlignedWord"), nullptr);
+            for (size_t i = 0; i < result.words.size(); i++) {
+                jclass aligned_word_class = env->FindClass("io/github/jaffe2718/qwen3asr4j/result/AlignedWord");
+                jmethodID aligned_word_constructor = env->GetMethodID(aligned_word_class, "<init>", "(Ljava/lang/String;FF)V");
+                jobject aligned_word_obj = env->NewObject(aligned_word_class, aligned_word_constructor,
+                    env->NewStringUTF(result.words[i].word.c_str()),
+                    result.words[i].start,
+                    result.words[i].end
+                );
+                env->SetObjectArrayElement(words_array, i, aligned_word_obj);
+            }
+            return env->NewObject(result_class, result_constructor,
+                words_array,
+                result.success,
+                env->NewStringUTF(result.error_msg.c_str()),
+                result.t_mel_ms,
+                result.t_encode_ms,
+                result.t_decode_ms,
+                result.t_total_ms
+            );
+        }
+        env->ThrowNew(env->FindClass("java/lang/NullPointerException"), "ForcedAligner not loaded");
+        return nullptr;
+    }
+
+    JNIEXPORT jobject JNICALL Java_io_github_jaffe2718_qwen3asr4j_ForcedAligner_alignFile(JNIEnv *env, jobject thiz, jstring audioPath, jstring text, jstring language) {
+        jint ctx_id = env->GetIntField(thiz, env->GetFieldID(env->GetObjectClass(thiz), "ctxId", "I"));
+        if (forced_aligner_map.contains(ctx_id)) {
+            qwen3_asr::ForcedAligner &ctx = forced_aligner_map[ctx_id];
+            const char * audio_path_ptr = env->GetStringUTFChars(audioPath, nullptr);
+            const char* language_ptr = env->GetStringUTFChars(language, nullptr);
+            const char* text_ptr = env->GetStringUTFChars(text, nullptr);
+            std::string audio_path_str = std::string(audio_path_ptr);
+            std::string text_str = std::string(text_ptr);
+            std::string language_str = std::string(language_ptr);
+            FILE *fp = fopen(audio_path_ptr, "rb");
+            if (!fp) {
+                env->ThrowNew(env->FindClass("java/io/FileNotFoundException"), "Failed to open audio file");
+                env->ReleaseStringUTFChars(audioPath, audio_path_ptr);
+                env->ReleaseStringUTFChars(language, language_ptr);
+                env->ReleaseStringUTFChars(text, text_ptr);
+                return nullptr;
+            }
+            fclose(fp);
+            qwen3_asr::alignment_result result = ctx.align(audio_path_str, text_str, language_str);
+            env->ReleaseStringUTFChars(audioPath, audio_path_ptr);
+            env->ReleaseStringUTFChars(language, language_ptr);
+            env->ReleaseStringUTFChars(text, text_ptr);
 
             // create result object
             jclass result_class = env->FindClass("io/github/jaffe2718/qwen3asr4j/result/AlignmentResult");
