@@ -27,7 +27,7 @@ static void compute_sinusoidal_pe(float * pe, int n_ctx, int d_model) {
     const int half_dim = d_model / 2;
     for (int pos = 0; pos < n_ctx; ++pos) {
         for (int i = 0; i < half_dim; ++i) {
-            float div_term = std::expf(-logf(10000.0f) * i / (half_dim - 1));
+            float div_term = expf(-logf(10000.0f) * i / (half_dim - 1));
             float angle = pos * div_term;
             pe[pos * d_model + i] = sinf(angle);
             pe[pos * d_model + half_dim + i] = cosf(angle);
