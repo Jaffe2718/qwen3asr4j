@@ -57,10 +57,7 @@ tasks.register("cmakeConfigure", Exec) {
             cmakeCommand.add("-DCMAKE_OSX_ARCHITECTURES=x86_64")
         }
     } else if (platform == "win-arm64") {
-        // use clang on windows arm64
-        cmakeCommand.addAll(["-G", "Ninja"])
-        cmakeCommand.add("-DCMAKE_C_COMPILER=clang.exe")
-        cmakeCommand.add("-DCMAKE_CXX_COMPILER=clang++.exe")
+        cmakeCommand.addAll(["-A", "ARM64"])
     }
     commandLine cmakeCommand
 }
