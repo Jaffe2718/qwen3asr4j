@@ -35,6 +35,17 @@ public class Qwen3ASR extends GGUFModelWrapper {
     }
 
     /**
+     * Transcribe the audio file
+     * @param audioPath the path to the audio file
+     * @param params the transcribe parameters
+     * @return the transcribe result
+     * @see TranscribeParams
+     */
+    public TranscribeResult transcribe(String audioPath, TranscribeParams params) throws FileNotFoundException {
+        return this.transcribeFile(audioPath, params);
+    }
+
+    /**
      * Set the progress callback function
      * (tokens_generated, max_tokens) -> void
      * @param callback the progress callback
@@ -98,4 +109,11 @@ public class Qwen3ASR extends GGUFModelWrapper {
      */
     private native TranscribeResult transcribe(float[] samples, int nSamples, TranscribeParams params) throws NullPointerException;
 
+    /**
+     * Transcribe the audio file
+     * @param audioPath the path to the audio file
+     * @param params the transcribe parameters
+     * @return the transcribe result
+     */
+    private native TranscribeResult transcribeFile(String audioPath, TranscribeParams params) throws FileNotFoundException, NullPointerException;
 }

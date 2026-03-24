@@ -3,6 +3,7 @@
 #include "stat_multiplatform.h"
 
 #include <cstdio>
+#include <cstring>
 #include <fstream>
 #include <fcntl.h>
 #include <ggml-impl.h>
@@ -281,32 +282,56 @@ bool GGUFLoader::load_tensor_data(const std::string & path, gguf_context * ctx,
 
     // Try GPU device buffer (zero-copy on Apple Silicon unified memory)
     ggml_backend_dev_t gpu_dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_GPU);
+    bool is_cuda = false;
     if (gpu_dev) {
-        model.buffer = ggml_backend_dev_buffer_from_host_ptr(gpu_dev, data_base, total_size, max_tensor_size);
+        const char * dev_name = ggml_backend_dev_name(gpu_dev);
+        if (dev_name && (strstr(dev_name, "CUDA") != nullptr || strstr(dev_name, "cuda") != nullptr)) {
+            is_cuda = true;
+        }
     }
-    if (!model.buffer) {
-        model.buffer = ggml_backend_cpu_buffer_from_ptr(data_base, total_size);
+
+    if (is_cuda) {
+        ggml_backend_t backend = ggml_backend_dev_init(gpu_dev, nullptr);
+        model.buffer = ggml_backend_alloc_ctx_tensors(model.ctx, backend);
+        if (model.buffer) {
+            ggml_backend_buffer_set_usage(model.buffer, GGML_BACKEND_BUFFER_USAGE_WEIGHTS);
+            for (int64_t i = 0; i < n_tensors; ++i) {
+                const char * name = gguf_get_tensor_name(ctx, i);
+                size_t offset = gguf_get_tensor_offset(ctx, i);
+                auto it = model.tensors.find(name);
+                if (it == model.tensors.end()) continue;
+                ggml_backend_tensor_set(it->second, data_base + offset, 0, ggml_nbytes(it->second));
+            }
+        }
+        ggml_backend_free(backend);
+    } else {
+        if (gpu_dev) {
+            model.buffer = ggml_backend_dev_buffer_from_host_ptr(gpu_dev, data_base, total_size, max_tensor_size);
+        }
+        if (!model.buffer) {
+            model.buffer = ggml_backend_cpu_buffer_from_ptr(data_base, total_size);
+        }
+        if (!model.buffer) {
+            error_msg_ = "Failed to create buffer from mmap";
+            munmap(mmap_addr, st.st_size);
+            model.mmap_addr = nullptr;
+            model.mmap_size = 0;
+            return false;
+        }
+
+        for (int64_t i = 0; i < n_tensors; ++i) {
+            const char * name = gguf_get_tensor_name(ctx, i);
+            size_t offset = gguf_get_tensor_offset(ctx, i);
+
+            auto it = model.tensors.find(name);
+            if (it == model.tensors.end()) continue;
+
+            ggml_tensor * tensor = it->second;
+            tensor->buffer = model.buffer;
+            tensor->data = data_base + offset;
+        }
     }
-    if (!model.buffer) {
-        error_msg_ = "Failed to create buffer from mmap";
-        munmap(mmap_addr, st.st_size);
-        model.mmap_addr = nullptr;
-        model.mmap_size = 0;
-        return false;
-    }
-    
-    for (int64_t i = 0; i < n_tensors; ++i) {
-        const char * name = gguf_get_tensor_name(ctx, i);
-        size_t offset = gguf_get_tensor_offset(ctx, i);
-        
-        auto it = model.tensors.find(name);
-        if (it == model.tensors.end()) continue;
-        
-        ggml_tensor * tensor = it->second;
-        tensor->buffer = model.buffer;
-        tensor->data = data_base + offset;
-    }
-    
+
     return true;
 }
 

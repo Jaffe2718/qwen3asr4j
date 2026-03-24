@@ -1,15 +1,16 @@
 #include "qwen3_asr.h"
 #include "forced_aligner.h"
 
-#include <unordered_map>
+#include <map>
 #include <jni.h>
 
-int available_qwen3_asr_id = 0;
-int available_forced_aligner_id = 0;
-std::unordered_map<int, qwen3_asr::Qwen3ASR> qwen3_asr_map;
-std::unordered_map<int, qwen3_asr::ForcedAligner> forced_aligner_map;
-std::unordered_map<int, jobject> callback_map;
-JavaVM *g_jvm = nullptr;
+static int available_qwen3_asr_id = 0;
+static int available_forced_aligner_id = 0;
+static std::map<int, qwen3_asr::Qwen3ASR> qwen3_asr_map;
+static std::map<int, qwen3_asr::ForcedAligner> forced_aligner_map;
+static std::map<int, jobject> callback_map;
+static JavaVM *g_jvm = nullptr;
+static jobject globalLoggerRef = nullptr;  // SLF4j logger reference for global logging
 
 int new_qwen3_asr_id() {
     return available_qwen3_asr_id++;
@@ -17,6 +18,68 @@ int new_qwen3_asr_id() {
 
 int new_forced_aligner_id() {
     return available_forced_aligner_id++;
+}
+
+static void qwen3asr4j_log_proxy(ggml_log_level level, const char *text, void*) {
+
+    if (!g_jvm || !globalLoggerRef || !text) return;
+
+    JNIEnv *env;
+    if (g_jvm->AttachCurrentThread((void **)&env, NULL) != JNI_OK) {
+        return;
+    }
+
+    jclass loggerClass = env->GetObjectClass(globalLoggerRef);
+    if (!loggerClass) {
+        g_jvm->DetachCurrentThread();
+        return;
+    }
+
+    jstring jMessage = env->NewStringUTF(text);
+    if (!jMessage) {
+        env->DeleteLocalRef(loggerClass);
+        g_jvm->DetachCurrentThread();
+        return;
+    }
+
+    jmethodID logMethod = nullptr;
+
+    switch (level) {
+        case GGML_LOG_LEVEL_ERROR:
+            logMethod = env->GetMethodID(loggerClass, "error", "(Ljava/lang/String;)V");
+            break;
+        case GGML_LOG_LEVEL_WARN:
+            logMethod = env->GetMethodID(loggerClass, "warn", "(Ljava/lang/String;)V");
+            break;
+        case GGML_LOG_LEVEL_INFO:
+            logMethod = env->GetMethodID(loggerClass, "info", "(Ljava/lang/String;)V");
+            break;
+        case GGML_LOG_LEVEL_DEBUG:
+            logMethod = env->GetMethodID(loggerClass, "debug", "(Ljava/lang/String;)V");
+            break;
+        case GGML_LOG_LEVEL_CONT:
+        case GGML_LOG_LEVEL_NONE:
+        default:
+            // Treat CONT and NONE as INFO or skip
+            logMethod = env->GetMethodID(loggerClass, "info", "(Ljava/lang/String;)V");
+            break;
+    }
+
+    if (logMethod) {
+        // Raw logs come with \n bs appended to them so we're going to call Java's .stripTrailing
+        jclass stringClass = env->FindClass("java/lang/String");
+        jmethodID stripTrailingMethod = env->GetMethodID(stringClass, "stripTrailing", "()Ljava/lang/String;");
+        jobject strippedMessage = env->CallObjectMethod(jMessage, stripTrailingMethod);
+        // Pass the stripped message to the logger
+        env->CallVoidMethod(globalLoggerRef, logMethod, strippedMessage);
+        env->DeleteLocalRef(strippedMessage);
+        env->DeleteLocalRef(stringClass);
+    }
+
+    env->DeleteLocalRef(jMessage);
+    env->DeleteLocalRef(loggerClass);
+
+    g_jvm->DetachCurrentThread();
 }
 
 
@@ -169,7 +232,7 @@ extern "C" {
 
         // Load model
         const bool success = qwen3_asr_map[ctx_id].load_model(model_path);
-        slf4j_info(env, thiz, ("Qwen3ASR model load state: " + std::string(success ? "success" : "failed")).c_str());
+        slf4j_info(env, thiz, ("Qwen3ASR<" + std::to_string(ctx_id) + "> model load state: " + std::string(success ? "success" : "failed")).c_str());
 
         // Release Java string
         env->ReleaseStringUTFChars(modelPath, model_path);
@@ -195,7 +258,7 @@ extern "C" {
             qwen3_asr_map.erase(ctx_id);
             callback_map.erase(ctx_id);
         }
-        slf4j_info(env, thiz, ("Qwen3ASR context " + std::to_string(ctx_id) + " freed").c_str());
+        slf4j_info(env, thiz, ("Qwen3ASR<" + std::to_string(ctx_id) + "> context freed").c_str());
     }
 
     /**
@@ -206,7 +269,7 @@ extern "C" {
     JNIEXPORT jobject JNICALL Java_io_github_jaffe2718_qwen3asr4j_Qwen3ASR_transcribe(JNIEnv *env, jobject thiz, jfloatArray samples, jint nSamples, jobject params) {
         jint ctx_id = env->GetIntField(thiz, env->GetFieldID(env->GetObjectClass(thiz), "ctxId", "I"));
         if (!qwen3_asr_map.contains(ctx_id)) {
-            env->ThrowNew(env->FindClass("java/lang/NullPointerException"), "Qwen3ASR context not loaded");
+            env->ThrowNew(env->FindClass("java/lang/NullPointerException"), ("Qwen3ASR<" + std::to_string(ctx_id) + "> context not loaded").c_str());
             return nullptr;
         }
         // get model context (reference, not copy)
@@ -214,8 +277,8 @@ extern "C" {
         // get audio samples
         jfloat *samples_ptr = env->GetFloatArrayElements(samples, nullptr);
         const auto lang = (jstring) env->GetObjectField(params, env->GetFieldID(env->GetObjectClass(params), "language", "Ljava/lang/String;"));
-        const char *lang_str = env->GetStringUTFChars(lang, nullptr);
-        // convert java array to c++ array
+        const char * lang_str = env->GetStringUTFChars(lang, nullptr);
+        // create transcribe_params
         qwen3_asr::transcribe_params t_params {
             env->GetIntField(params, env->GetFieldID(env->GetObjectClass(params), "maxTokens", "I")),
             lang_str,
@@ -238,22 +301,66 @@ extern "C" {
         return res_obj;
     }
 
+    /**
+     * Class:     io_github_jaffe2718_qwen3asr4j_Qwen3ASR
+     * Method:    transcribeFile
+     * Signature: (Ljava/lang/String;Lio/github/jaffe2718/qwen3asr4j/TranscribeParams;)Lio/github/jaffe2718/qwen3asr4j/TranscribeResult;
+     */
+    JNIEXPORT jobject JNICALL Java_io_github_jaffe2718_qwen3asr4j_Qwen3ASR_transcribeFile(JNIEnv *env, jobject thiz, jstring audioPath, jobject params) {
+        jint ctx_id = env->GetIntField(thiz, env->GetFieldID(env->GetObjectClass(thiz), "ctxId", "I"));
+        if (!qwen3_asr_map.contains(ctx_id)) {
+            env->ThrowNew(env->FindClass("java/lang/NullPointerException"), ("Qwen3ASR<" + std::to_string(ctx_id) + "> context not loaded").c_str());
+            return nullptr;
+        }
+        // get model context (reference, not copy)
+        qwen3_asr::Qwen3ASR &ctx = qwen3_asr_map[ctx_id];
+        // get language
+        const auto lang = (jstring) env->GetObjectField(params, env->GetFieldID(env->GetObjectClass(params), "language", "Ljava/lang/String;"));
+        const char * lang_str = env->GetStringUTFChars(lang, nullptr);
+        // audio path
+        const char * audio_path = env->GetStringUTFChars(audioPath, nullptr);
+        FILE *fp = fopen(audio_path, "rb");
+        if (!fp) {
+            env->ThrowNew(env->FindClass("java/io/FileNotFoundException"), "Failed to open audio file");
+            return nullptr;
+        }
+        fclose(fp);
+        // create transcribe_params
+        qwen3_asr::transcribe_params t_params {
+            env->GetIntField(params, env->GetFieldID(env->GetObjectClass(params), "maxTokens", "I")),
+            lang_str,
+            env->GetIntField(params, env->GetFieldID(env->GetObjectClass(params), "nThreads", "I")),
+            (bool) env->GetBooleanField(params, env->GetFieldID(env->GetObjectClass(params), "printProgress", "Z")),
+            (bool) env->GetBooleanField(params, env->GetFieldID(env->GetObjectClass(params), "printTiming", "Z"))
+        };
+
+        qwen3_asr::transcribe_result res = ctx.transcribe(audio_path, t_params);
+
+        // create TranscribeResult object
+        jclass res_cls = env->FindClass("io/github/jaffe2718/qwen3asr4j/result/TranscribeResult");
+        jmethodID res_ctor = env->GetMethodID(res_cls, "<init>", "(Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;JJJJJ)V");
+        jobject res_obj = env->NewObject(res_cls, res_ctor, env->NewStringUTF(res.language.c_str()), env->NewStringUTF(res.text.c_str()), res.success, env->NewStringUTF(res.error_msg.c_str()), res.t_load_ms, res.t_mel_ms, res.t_encode_ms, res.t_decode_ms, res.t_total_ms);
+
+        // release resources
+        env->ReleaseStringUTFChars(lang, lang_str);
+
+        return res_obj;
+    }
+
 /*===================================io.github.jaffe2718.qwen3asr4j.ForcedAligner===================================*/
 
     /**
-     * Class:     io_github_jaffe2718_qwen3asr4j_ForcedAligner
+     * Class:     io_github_jaffe2718_qwen3asr4j_
      * Method:    getError
      * Signature: ()Ljava/lang/String;
      */
     JNIEXPORT jstring JNICALL Java_io_github_jaffe2718_qwen3asr4j_ForcedAligner_getError(JNIEnv *env, jobject thiz) {
         jint ctx_id = env->GetIntField(thiz, env->GetFieldID(env->GetObjectClass(thiz), "ctxId", "I"));
-        if (!forced_aligner_map.contains(ctx_id)) {
-            env->ThrowNew(env->FindClass("java/lang/NullPointerException"), "ForcedAligner context not loaded");
-            return nullptr;
+        if (forced_aligner_map.contains(ctx_id)) {
+            qwen3_asr::ForcedAligner &ctx = forced_aligner_map[ctx_id];
+            return env->NewStringUTF(ctx.get_error().c_str());
         }
-        // get model context (reference, not copy)
-        qwen3_asr::ForcedAligner &ctx = forced_aligner_map[ctx_id];
-        return env->NewStringUTF(ctx.get_error().c_str());
+        return env->NewStringUTF("");
     }
 
     /**
@@ -407,8 +514,85 @@ extern "C" {
                 result.t_total_ms
             );
         }
-        env->ThrowNew(env->FindClass("java/lang/NullPointerException"), "ForcedAligner not loaded");
+        env->ThrowNew(env->FindClass("java/lang/NullPointerException"), ("ForcedAligner<" + std::to_string(ctx_id) + "> not loaded").c_str());
         return nullptr;
+    }
+
+    /**
+     * Class:     io_github_jaffe2718_qwen3asr4j_ForcedAligner
+     * Method:    alignFile
+     * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/github/jaffe2718/qwen3asr4j/result/AlignmentResult;
+     */
+    JNIEXPORT jobject JNICALL Java_io_github_jaffe2718_qwen3asr4j_ForcedAligner_alignFile(JNIEnv *env, jobject thiz, jstring audioPath, jstring text, jstring language) {
+        jint ctx_id = env->GetIntField(thiz, env->GetFieldID(env->GetObjectClass(thiz), "ctxId", "I"));
+        if (forced_aligner_map.contains(ctx_id)) {
+            qwen3_asr::ForcedAligner &ctx = forced_aligner_map[ctx_id];
+            const char * audio_path_ptr = env->GetStringUTFChars(audioPath, nullptr);
+            const char* language_ptr = env->GetStringUTFChars(language, nullptr);
+            const char* text_ptr = env->GetStringUTFChars(text, nullptr);
+            std::string audio_path_str = std::string(audio_path_ptr);
+            std::string text_str = std::string(text_ptr);
+            std::string language_str = std::string(language_ptr);
+            FILE *fp = fopen(audio_path_ptr, "rb");
+            if (!fp) {
+                env->ThrowNew(env->FindClass("java/io/FileNotFoundException"), "Failed to open audio file");
+                env->ReleaseStringUTFChars(audioPath, audio_path_ptr);
+                env->ReleaseStringUTFChars(language, language_ptr);
+                env->ReleaseStringUTFChars(text, text_ptr);
+                return nullptr;
+            }
+            fclose(fp);
+            qwen3_asr::alignment_result result = ctx.align(audio_path_str, text_str, language_str);
+            env->ReleaseStringUTFChars(audioPath, audio_path_ptr);
+            env->ReleaseStringUTFChars(language, language_ptr);
+            env->ReleaseStringUTFChars(text, text_ptr);
+
+            // create result object
+            jclass result_class = env->FindClass("io/github/jaffe2718/qwen3asr4j/result/AlignmentResult");
+            jmethodID result_constructor = env->GetMethodID(result_class, "<init>", "([Lio/github/jaffe2718/qwen3asr4j/result/AlignedWord;ZLjava/lang/String;JJJJ)V");
+            jobjectArray words_array = env->NewObjectArray(result.words.size(), env->FindClass("io/github/jaffe2718/qwen3asr4j/result/AlignedWord"), nullptr);
+            for (size_t i = 0; i < result.words.size(); i++) {
+                jclass aligned_word_class = env->FindClass("io/github/jaffe2718/qwen3asr4j/result/AlignedWord");
+                jmethodID aligned_word_constructor = env->GetMethodID(aligned_word_class, "<init>", "(Ljava/lang/String;FF)V");
+                jobject aligned_word_obj = env->NewObject(aligned_word_class, aligned_word_constructor,
+                    env->NewStringUTF(result.words[i].word.c_str()),
+                    result.words[i].start,
+                    result.words[i].end
+                );
+                env->SetObjectArrayElement(words_array, i, aligned_word_obj);
+            }
+            return env->NewObject(result_class, result_constructor,
+                words_array,
+                result.success,
+                env->NewStringUTF(result.error_msg.c_str()),
+                result.t_mel_ms,
+                result.t_encode_ms,
+                result.t_decode_ms,
+                result.t_total_ms
+            );
+        }
+        env->ThrowNew(env->FindClass("java/lang/NullPointerException"), ("ForcedAligner<" + std::to_string(ctx_id) + "> not loaded").c_str());
+        return nullptr;
+    }
+
+
+/*===================================io.github.jaffe2718.qwen3asr4j.GGUFModelWrapper===================================*/
+
+    /**
+     * Class:     io_github_jaffe2718_qwen3asr4j_GGUFModelWrapper
+     * Method:    setGGMLGlobalLogger
+     * Signature: (Lorg/slf4j/Logger;)V
+     */
+    JNIEXPORT void JNICALL Java_io_github_jaffe2718_qwen3asr4j_GGUFModelWrapper_setGGMLGlobalLogger(JNIEnv *env, jclass clazz,jobject logger) {
+        if (!g_jvm && env->GetJavaVM(&g_jvm) != JNI_OK) {
+            env->ThrowNew(env->FindClass("java/lang/RuntimeException"), "Failed to initialize Java VM");
+            return;
+        }
+        if (globalLoggerRef != nullptr) {
+            env->DeleteGlobalRef(globalLoggerRef);
+        }
+        globalLoggerRef = env->NewGlobalRef(logger);
+        ggml_log_set(qwen3asr4j_log_proxy, nullptr);
     }
 
 #ifdef __cplusplus

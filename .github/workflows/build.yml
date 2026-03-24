@@ -6,19 +6,27 @@ on:
 jobs:
 
     build-win: # cpu/vulkan
-        runs-on: windows-latest
+
         strategy:
             matrix:
                 include:
-                    -   name: win-x64
+                    -   name: win-arm64
+                        runner: windows-11-arm
                         ggml_cuda: OFF
                         ggml_vulkan: OFF
-#                    -   name: win-x64-cuda
-#                        ggml_cuda: ON
-#                        ggml_vulkan: OFF
+                    -   name: win-x64
+                        runner: windows-2022
+                        ggml_cuda: OFF
+                        ggml_vulkan: OFF
+                    -   name: win-x64-cuda
+                        runner: windows-2022
+                        ggml_cuda: ON
+                        ggml_vulkan: OFF
                     -   name: win-x64-vulkan
+                        runner: windows-2022
                         ggml_cuda: OFF
                         ggml_vulkan: ON
+        runs-on: ${{ matrix.runner }}
         env:
             GGML_CUDA: ${{ matrix.ggml_cuda }}
             GGML_VULKAN: ${{ matrix.ggml_vulkan }}
@@ -120,10 +128,10 @@ jobs:
                         runner: ubuntu-22.04
                         ggml_cuda: OFF
                         ggml_vulkan: OFF
-#                    -   name: linux-x64-cuda
-#                        runner: ubuntu-22.04
-#                        ggml_cuda: ON
-#                        ggml_vulkan: OFF
+                    -   name: linux-x64-cuda
+                        runner: ubuntu-22.04
+                        ggml_cuda: ON
+                        ggml_vulkan: OFF
                     -   name: linux-x64-vulkan
                         runner: ubuntu-22.04
                         ggml_cuda: OFF
@@ -382,13 +390,18 @@ jobs:
 
             -   uses: actions/download-artifact@v4
                 with:
+                    name: win-arm64-natives
+                    path: src/main/resources/win-arm64/
+
+            -   uses: actions/download-artifact@v4
+                with:
                     name: win-x64-natives
                     path: src/main/resources/win-x64/
 
-#            -   uses: actions/download-artifact@v4
-#                with:
-#                    name: linux-x64-cuda-natives
-#                    path: linux-x64-cuda/
+            -   uses: actions/download-artifact@v4
+                with:
+                    name: linux-x64-cuda-natives
+                    path: linux-x64-cuda/
 
             -   uses: actions/download-artifact@v4
                 with:
@@ -410,10 +423,10 @@ jobs:
                     name: mac-arm64-metal-natives
                     path: mac-arm64-metal/
 
-#            -   uses: actions/download-artifact@v4
-#                with:
-#                    name: win-x64-cuda-natives
-#                    path: win-x64-cuda/
+            -   uses: actions/download-artifact@v4
+                with:
+                    name: win-x64-cuda-natives
+                    path: win-x64-cuda/
 
             -   uses: actions/download-artifact@v4
                 with:

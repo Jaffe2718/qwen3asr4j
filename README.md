@@ -6,7 +6,7 @@ on [qwen3-asr.cpp](https://github.com/predict-woo/qwen3-asr.cpp) with modificati
 
 ## Features
 
-- **High Performance**: Leverages GGML for efficient inference on CPU, Metal, and Vulkan
+- **High Performance**: Leverages GGML for efficient inference on CPU, CUDA, Metal, and Vulkan
 - **Multi-platform Support**: Windows, Linux, and macOS
 - **Dual Functionality**:
     - Speech recognition (ASR) - convert audio to text
@@ -16,21 +16,24 @@ on [qwen3-asr.cpp](https://github.com/predict-woo/qwen3-asr.cpp) with modificati
 
 ## Supports
 
-| Platform    | Supported           |
-|-------------|---------------------|
-| linux-arm64 | CPU / <u>Vulkan</u> |
-| linux-x64   | CPU / <u>Vulkan</u> |
-| mac-arm64   | CPU / <u>Metal</u>  |
-| mac-x64     | CPU / <u>Metal</u>  |
-| win-x64     | CPU / <u>Vulkan</u> |
+| Platform    | Supported                          |
+|-------------|------------------------------------|
+| linux-arm64 | CPU / <u>Vulkan</u>                |
+| linux-x64   | CPU // <u>CUDA</u> / <u>Vulkan</u> |
+| mac-arm64   | CPU / <u>Metal</u>                 |
+| mac-x64     | CPU / <u>Metal</u>                 |
+| win-arm64   | CPU                                |
+| win-x64     | CPU / <u>CUDA</u> / <u>Vulkan</u>  |
 
-> **Note**: Vulkan, and Metal support require additional native libraries to be installed.
+> **Note**: CUDA,Vulkan, and Metal support require additional native libraries to be installed.
 
 | Model Name               | Size         | Type           | Description                            |
 |--------------------------|--------------|----------------|----------------------------------------|
 | Qwen3-ASR-0.6B           | ~1.8GB (f16) | ASR            | Lightweight speech recognition model   |
 | Qwen3-ASR-1.7B           | ~4.7GB (f16) | ASR            | More accurate speech recognition model |
 | Qwen3-ForcedAligner-0.6B | ~1.8GB (f16) | Forced Aligner | Aligns text with audio timestamps      |
+
+> For more models, see [Qwen3-ASR-GGUF](https://huggingface.co/Jaffe2718/Qwen3-ASR-GGUF).
 
 ## Installation
 

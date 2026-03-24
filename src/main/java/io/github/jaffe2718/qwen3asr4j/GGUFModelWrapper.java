@@ -12,6 +12,12 @@ import java.io.FileNotFoundException;
 public abstract class GGUFModelWrapper implements AutoCloseable {
 
     /**
+     * Set the global logger for logging
+     * @param logger the logger to use, null to disable logging
+     */
+    public static native void setGGMLGlobalLogger(Logger logger);
+
+    /**
      * The logger to use for logging, null to disable logging
      */
     protected @Nullable final Logger logger;

@@ -56,6 +56,8 @@ tasks.register("cmakeConfigure", Exec) {
         } else if (archShort == "x64") {
             cmakeCommand.add("-DCMAKE_OSX_ARCHITECTURES=x86_64")
         }
+    } else if (platform == "win-arm64") {
+        cmakeCommand.addAll(["-A", "ARM64", "-T", "ClangCL"])
     }
     commandLine cmakeCommand
 }
@@ -127,6 +129,7 @@ tasks.register("prepareZipsForRelease") {    // for GitHub Releases
             'src/main/resources/mac-arm64',
             'src/main/resources/mac-x64',
             'src/main/resources/win-x64',
+            'src/main/resources/win-arm64',
             'win-x64-cuda',
             'win-x64-vulkan'
     ]
