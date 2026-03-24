@@ -1,14 +1,14 @@
 #include "qwen3_asr.h"
 #include "forced_aligner.h"
 
-#include <unordered_map>
+#include <map>
 #include <jni.h>
 
 int available_qwen3_asr_id = 0;
 int available_forced_aligner_id = 0;
-std::unordered_map<int, qwen3_asr::Qwen3ASR> qwen3_asr_map;
-std::unordered_map<int, qwen3_asr::ForcedAligner> forced_aligner_map;
-std::unordered_map<int, jobject> callback_map;
+std::map<int, qwen3_asr::Qwen3ASR> qwen3_asr_map;
+std::map<int, qwen3_asr::ForcedAligner> forced_aligner_map;
+std::map<int, jobject> callback_map;
 JavaVM *g_jvm = nullptr;
 
 int new_qwen3_asr_id() {
@@ -169,7 +169,7 @@ extern "C" {
 
         // Load model
         const bool success = qwen3_asr_map[ctx_id].load_model(model_path);
-        slf4j_info(env, thiz, ("Qwen3ASR model load state: " + std::string(success ? "success" : "failed")).c_str());
+        slf4j_info(env, thiz, ("Qwen3ASR<" + std::to_string(ctx_id) + "> model load state: " + std::string(success ? "success" : "failed")).c_str());
 
         // Release Java string
         env->ReleaseStringUTFChars(modelPath, model_path);
@@ -195,7 +195,7 @@ extern "C" {
             qwen3_asr_map.erase(ctx_id);
             callback_map.erase(ctx_id);
         }
-        slf4j_info(env, thiz, ("Qwen3ASR context " + std::to_string(ctx_id) + " freed").c_str());
+        slf4j_info(env, thiz, ("Qwen3ASR<" + std::to_string(ctx_id) + "> context freed").c_str());
     }
 
     /**
@@ -206,7 +206,7 @@ extern "C" {
     JNIEXPORT jobject JNICALL Java_io_github_jaffe2718_qwen3asr4j_Qwen3ASR_transcribe(JNIEnv *env, jobject thiz, jfloatArray samples, jint nSamples, jobject params) {
         jint ctx_id = env->GetIntField(thiz, env->GetFieldID(env->GetObjectClass(thiz), "ctxId", "I"));
         if (!qwen3_asr_map.contains(ctx_id)) {
-            env->ThrowNew(env->FindClass("java/lang/NullPointerException"), "Qwen3ASR context not loaded");
+            env->ThrowNew(env->FindClass("java/lang/NullPointerException"), ("Qwen3ASR<" + std::to_string(ctx_id) + "> context not loaded").c_str());
             return nullptr;
         }
         // get model context (reference, not copy)
@@ -246,7 +246,7 @@ extern "C" {
     JNIEXPORT jobject JNICALL Java_io_github_jaffe2718_qwen3asr4j_Qwen3ASR_transcribeFile(JNIEnv *env, jobject thiz, jstring audioPath, jobject params) {
         jint ctx_id = env->GetIntField(thiz, env->GetFieldID(env->GetObjectClass(thiz), "ctxId", "I"));
         if (!qwen3_asr_map.contains(ctx_id)) {
-            env->ThrowNew(env->FindClass("java/lang/NullPointerException"), "Qwen3ASR context not loaded");
+            env->ThrowNew(env->FindClass("java/lang/NullPointerException"), ("Qwen3ASR<" + std::to_string(ctx_id) + "> context not loaded").c_str());
             return nullptr;
         }
         // get model context (reference, not copy)
@@ -287,19 +287,17 @@ extern "C" {
 /*===================================io.github.jaffe2718.qwen3asr4j.ForcedAligner===================================*/
 
     /**
-     * Class:     io_github_jaffe2718_qwen3asr4j_ForcedAligner
+     * Class:     io_github_jaffe2718_qwen3asr4j_
      * Method:    getError
      * Signature: ()Ljava/lang/String;
      */
     JNIEXPORT jstring JNICALL Java_io_github_jaffe2718_qwen3asr4j_ForcedAligner_getError(JNIEnv *env, jobject thiz) {
         jint ctx_id = env->GetIntField(thiz, env->GetFieldID(env->GetObjectClass(thiz), "ctxId", "I"));
-        if (!forced_aligner_map.contains(ctx_id)) {
-            env->ThrowNew(env->FindClass("java/lang/NullPointerException"), "ForcedAligner context not loaded");
-            return nullptr;
+        if (forced_aligner_map.contains(ctx_id)) {
+            qwen3_asr::ForcedAligner &ctx = forced_aligner_map[ctx_id];
+            return env->NewStringUTF(ctx.get_error().c_str());
         }
-        // get model context (reference, not copy)
-        qwen3_asr::ForcedAligner &ctx = forced_aligner_map[ctx_id];
-        return env->NewStringUTF(ctx.get_error().c_str());
+        return env->NewStringUTF("");
     }
 
     /**
@@ -453,7 +451,7 @@ extern "C" {
                 result.t_total_ms
             );
         }
-        env->ThrowNew(env->FindClass("java/lang/NullPointerException"), "ForcedAligner not loaded");
+        env->ThrowNew(env->FindClass("java/lang/NullPointerException"), ("ForcedAligner<" + std::to_string(ctx_id) + "> not loaded").c_str());
         return nullptr;
     }
 
@@ -505,7 +503,7 @@ extern "C" {
                 result.t_total_ms
             );
         }
-        env->ThrowNew(env->FindClass("java/lang/NullPointerException"), "ForcedAligner not loaded");
+        env->ThrowNew(env->FindClass("java/lang/NullPointerException"), ("ForcedAligner<" + std::to_string(ctx_id) + "> not loaded").c_str());
         return nullptr;
     }
 

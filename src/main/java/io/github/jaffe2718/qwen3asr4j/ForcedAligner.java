@@ -75,9 +75,8 @@ public class ForcedAligner extends GGUFModelWrapper {
     /**
      * Get the last error message
      * @return the last error message
-     * @throws NullPointerException if the ForcedAligner is not loaded
      */
-    public native String getError() throws NullPointerException;
+    public native String getError();
 
     /**
      * Check if the ForcedAligner is loaded
