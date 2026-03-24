@@ -4,12 +4,13 @@
 #include <map>
 #include <jni.h>
 
-int available_qwen3_asr_id = 0;
-int available_forced_aligner_id = 0;
-std::map<int, qwen3_asr::Qwen3ASR> qwen3_asr_map;
-std::map<int, qwen3_asr::ForcedAligner> forced_aligner_map;
-std::map<int, jobject> callback_map;
-JavaVM *g_jvm = nullptr;
+static int available_qwen3_asr_id = 0;
+static int available_forced_aligner_id = 0;
+static std::map<int, qwen3_asr::Qwen3ASR> qwen3_asr_map;
+static std::map<int, qwen3_asr::ForcedAligner> forced_aligner_map;
+static std::map<int, jobject> callback_map;
+static JavaVM *g_jvm = nullptr;
+static jobject globalLoggerRef = nullptr;  // SLF4j logger reference for global logging
 
 int new_qwen3_asr_id() {
     return available_qwen3_asr_id++;
@@ -17,6 +18,68 @@ int new_qwen3_asr_id() {
 
 int new_forced_aligner_id() {
     return available_forced_aligner_id++;
+}
+
+static void qwen3asr4j_log_proxy(ggml_log_level level, const char *text, void*) {
+
+    if (!g_jvm || !globalLoggerRef || !text) return;
+
+    JNIEnv *env;
+    if (g_jvm->AttachCurrentThread((void **)&env, NULL) != JNI_OK) {
+        return;
+    }
+
+    jclass loggerClass = env->GetObjectClass(globalLoggerRef);
+    if (!loggerClass) {
+        g_jvm->DetachCurrentThread();
+        return;
+    }
+
+    jstring jMessage = env->NewStringUTF(text);
+    if (!jMessage) {
+        env->DeleteLocalRef(loggerClass);
+        g_jvm->DetachCurrentThread();
+        return;
+    }
+
+    jmethodID logMethod = nullptr;
+
+    switch (level) {
+        case GGML_LOG_LEVEL_ERROR:
+            logMethod = env->GetMethodID(loggerClass, "error", "(Ljava/lang/String;)V");
+            break;
+        case GGML_LOG_LEVEL_WARN:
+            logMethod = env->GetMethodID(loggerClass, "warn", "(Ljava/lang/String;)V");
+            break;
+        case GGML_LOG_LEVEL_INFO:
+            logMethod = env->GetMethodID(loggerClass, "info", "(Ljava/lang/String;)V");
+            break;
+        case GGML_LOG_LEVEL_DEBUG:
+            logMethod = env->GetMethodID(loggerClass, "debug", "(Ljava/lang/String;)V");
+            break;
+        case GGML_LOG_LEVEL_CONT:
+        case GGML_LOG_LEVEL_NONE:
+        default:
+            // Treat CONT and NONE as INFO or skip
+            logMethod = env->GetMethodID(loggerClass, "info", "(Ljava/lang/String;)V");
+            break;
+    }
+
+    if (logMethod) {
+        // Raw logs come with \n bs appended to them so we're going to call Java's .stripTrailing
+        jclass stringClass = env->FindClass("java/lang/String");
+        jmethodID stripTrailingMethod = env->GetMethodID(stringClass, "stripTrailing", "()Ljava/lang/String;");
+        jobject strippedMessage = env->CallObjectMethod(jMessage, stripTrailingMethod);
+        // Pass the stripped message to the logger
+        env->CallVoidMethod(globalLoggerRef, logMethod, strippedMessage);
+        env->DeleteLocalRef(strippedMessage);
+        env->DeleteLocalRef(stringClass);
+    }
+
+    env->DeleteLocalRef(jMessage);
+    env->DeleteLocalRef(loggerClass);
+
+    g_jvm->DetachCurrentThread();
 }
 
 
@@ -455,6 +518,11 @@ extern "C" {
         return nullptr;
     }
 
+    /**
+     * Class:     io_github_jaffe2718_qwen3asr4j_ForcedAligner
+     * Method:    alignFile
+     * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/github/jaffe2718/qwen3asr4j/result/AlignmentResult;
+     */
     JNIEXPORT jobject JNICALL Java_io_github_jaffe2718_qwen3asr4j_ForcedAligner_alignFile(JNIEnv *env, jobject thiz, jstring audioPath, jstring text, jstring language) {
         jint ctx_id = env->GetIntField(thiz, env->GetFieldID(env->GetObjectClass(thiz), "ctxId", "I"));
         if (forced_aligner_map.contains(ctx_id)) {
@@ -505,6 +573,26 @@ extern "C" {
         }
         env->ThrowNew(env->FindClass("java/lang/NullPointerException"), ("ForcedAligner<" + std::to_string(ctx_id) + "> not loaded").c_str());
         return nullptr;
+    }
+
+
+/*===================================io.github.jaffe2718.qwen3asr4j.GGUFModelWrapper===================================*/
+
+    /**
+     * Class:     io_github_jaffe2718_qwen3asr4j_GGUFModelWrapper
+     * Method:    setGGMLGlobalLogger
+     * Signature: (Lorg/slf4j/Logger;)V
+     */
+    JNIEXPORT void JNICALL Java_io_github_jaffe2718_qwen3asr4j_GGUFModelWrapper_setGGMLGlobalLogger(JNIEnv *env, jclass clazz,jobject logger) {
+        if (!g_jvm && env->GetJavaVM(&g_jvm) != JNI_OK) {
+            env->ThrowNew(env->FindClass("java/lang/RuntimeException"), "Failed to initialize Java VM");
+            return;
+        }
+        if (globalLoggerRef != nullptr) {
+            env->DeleteGlobalRef(globalLoggerRef);
+        }
+        globalLoggerRef = env->NewGlobalRef(logger);
+        ggml_log_set(qwen3asr4j_log_proxy, nullptr);
     }
 
 #ifdef __cplusplus

@@ -84,7 +84,17 @@ public class TestQwen3ASR {
     }
 
     @BeforeAll
-    public static void prepare() {
+    public static void prepare() throws IOException, URISyntaxException {
+        if (isCpuOnly()) {
+            NativeManager.loadLibrary(LOGGER);
+        } else if (GGML_VULKAN.equals("ON")) {
+            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-vulkan"), LOGGER);
+        } else if (GGML_CUDA.equals("ON")) {
+            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-cuda"), LOGGER);
+        } else {
+            return;
+        }
+        GGUFModelWrapper.setGGMLGlobalLogger(LOGGER);
         LOGGER.info("GGML_CUDA = {}", GGML_CUDA);
         LOGGER.info("GGML_VULKAN = {}", GGML_VULKAN);
         LOGGER.info("user.dir = {}", System.getProperty("user.dir"));
@@ -112,17 +122,7 @@ public class TestQwen3ASR {
 
 
     @Test
-    public void test0_6b() throws IOException, URISyntaxException {
-        if (isCpuOnly()) {
-            NativeManager.loadLibrary(LOGGER);
-        } else if (GGML_VULKAN.equals("ON")) {
-            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-vulkan"), LOGGER);
-        } else if (GGML_CUDA.equals("ON")) {
-            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-cuda"), LOGGER);
-        } else {
-            return;
-        }
-
+    public void test0_6b() throws IOException {
         Qwen3ASR asr = new Qwen3ASR("models/qwen3-asr-0.6b-q8_0.gguf", LOGGER);
         LOGGER.info("asr.isLoaded = {}", asr.isLoaded());
         for (Map.Entry<String, Number> entry : Objects.requireNonNull(asr.getConfig()).entrySet()) {
@@ -147,16 +147,7 @@ public class TestQwen3ASR {
     }
 
     @Test
-    public void test1_7b() throws IOException, URISyntaxException {
-        if (isCpuOnly()) {
-            NativeManager.loadLibrary(LOGGER);
-        } else if (GGML_VULKAN.equals("ON")) {
-            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-vulkan"), LOGGER);
-        } else if (GGML_CUDA.equals("ON")) {
-            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-cuda"), LOGGER);
-        } else {
-            return;
-        }
+    public void test1_7b() throws IOException {
         Qwen3ASR asr = new Qwen3ASR(Path.of("models/qwen3-asr-1.7b-q4_1.gguf").toAbsolutePath().toString(), LOGGER);
         asr.setProgressCallback(TestQwen3ASR::testCallback);
         LOGGER.info("isLoaded = {}", asr.isLoaded());
@@ -167,17 +158,7 @@ public class TestQwen3ASR {
     }
 
     @Test
-    public void testFile() throws IOException, URISyntaxException {
-        if (isCpuOnly()) {
-            NativeManager.loadLibrary(LOGGER);
-        } else if (GGML_VULKAN.equals("ON")) {
-            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-vulkan"), LOGGER);
-        } else if (GGML_CUDA.equals("ON")) {
-            NativeManager.loadLibrary(Path.of(NativeManager.NATIVE_LIB_DIR + "-cuda"), LOGGER);
-        } else {
-            return;
-        }
-
+    public void testFile() throws IOException  {
         Qwen3ASR asr = new Qwen3ASR("models/qwen3-asr-0.6b-q8_0.gguf", LOGGER);
         LOGGER.info("asr.isLoaded = {}", asr.isLoaded());
         LOGGER.info("transcribing {} samples in English from samples/jfk.wav", sampleEnUs.length);
