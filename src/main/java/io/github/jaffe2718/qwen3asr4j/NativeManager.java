@@ -68,7 +68,7 @@ public abstract class NativeManager {
      * @throws URISyntaxException if something goes wrong
      */
     @SuppressWarnings("DataFlowIssue")
-    public static void loadLibrary(@Nullable Logger logger) throws IOException, URISyntaxException {
+    public static void loadLibrary(@Nullable Logger logger) throws IOException, URISyntaxException, UnsatisfiedLinkError {
         // 1. extract all files in NATIVE_LIB_DIR to temporary directory
         Path tempDir = Files.createTempDirectory("qwen3asr4j");
         extractResource(NativeManager.class.getResource("/" + NATIVE_LIB_DIR).toURI(), tempDir);
@@ -82,7 +82,7 @@ public abstract class NativeManager {
      * @param libDir the directory containing the native libraries
      * @param logger the logger to use for logging, or null if no logging is desired
      */
-    public static void loadLibrary(Path libDir, @Nullable Logger logger) {
+    public static void loadLibrary(Path libDir, @Nullable Logger logger) throws UnsatisfiedLinkError{
         for (String libName : LOAD_ORDER) {
             for (File file : Objects.requireNonNull(libDir.toFile().listFiles())) {
                 if (file.isFile() && file.getName().endsWith(libName + NATIVE_EXTENSION)) {

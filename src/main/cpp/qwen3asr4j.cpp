@@ -431,7 +431,7 @@ extern "C" {
      * Method:    load
      * Signature: (Ljava/lang/String;)V
      */
-     JNIEXPORT void JNICALL Java_io_github_jaffe2718_qwen3asr4j_ForcedAligner_load(JNIEnv *env, jobject thiz, jstring modelPath) {
+    JNIEXPORT void JNICALL Java_io_github_jaffe2718_qwen3asr4j_ForcedAligner_load(JNIEnv *env, jobject thiz, jstring modelPath) {
         const char* model_path = env->GetStringUTFChars(modelPath, nullptr);
         if (model_path == nullptr) {
             env->ThrowNew(env->FindClass("java/io/FileNotFoundException"), "Model path is null");
@@ -462,7 +462,7 @@ extern "C" {
      * Method:    free
      * Signature: ()V
      */
-     JNIEXPORT void JNICALL Java_io_github_jaffe2718_qwen3asr4j_ForcedAligner_free(JNIEnv *env, jobject thiz) {
+    JNIEXPORT void JNICALL Java_io_github_jaffe2718_qwen3asr4j_ForcedAligner_free(JNIEnv *env, jobject thiz) {
         jint ctx_id = env->GetIntField(thiz, env->GetFieldID(env->GetObjectClass(thiz), "ctxId", "I"));
         if (forced_aligner_map.contains(ctx_id)) {
             forced_aligner_map.erase(ctx_id);

@@ -2,6 +2,12 @@
 #define MMAN_MULTIPLATFORM_H
 
 #ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 #include <io.h>
 
@@ -103,9 +109,9 @@ namespace qwen3_asr {
 
 }  // namespace qwen3_asr
 #else
-#    include <sys/mman.h>
-#    include <unistd.h>
-#    define O_BINARY O_RDONLY
+    #include <sys/mman.h>
+    #include <unistd.h>
+    #define O_BINARY O_RDONLY
 #endif  // _WIN32
 
 #endif // MMAN_MULTIPLATFORM_H

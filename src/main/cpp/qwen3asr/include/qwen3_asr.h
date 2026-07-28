@@ -1,5 +1,7 @@
 #pragma once
 
+#include "qwen3asr_win_export.h"
+
 #include "mel_spectrogram.h"
 #include "audio_encoder.h"
 #include "text_decoder.h"

@@ -1,14 +1,13 @@
 #include "text_decoder.h"
 #include "timing.h"
-#include "mman_multiplatform.h"
-#include "stat_multiplatform.h"
 
 #include <cmath>
 #include <cstring>
 #include <cstdio>
 #include <fstream>
-#include <fcntl.h>
+#include <algorithm>
 #include <ggml-impl.h>
+#include <ggml-cpu.h>
 
 #define QWEN3_ASR_MAX_NODES 8192
 
@@ -31,6 +30,13 @@ TextDecoder::~TextDecoder() {
         state_.backend_cpu = nullptr;
     }
     free_decoder_model(model_);
+}
+
+void TextDecoder::set_n_threads(int n_threads) {
+    n_threads_ = std::max(1, n_threads);
+    if (state_.backend_cpu) {
+        ggml_backend_cpu_set_n_threads(state_.backend_cpu, n_threads_);
+    }
 }
 
 bool TextDecoder::load_model(const std::string & model_path) {
@@ -105,8 +111,10 @@ bool TextDecoder::load_model(const std::string & model_path) {
         error_msg_ = "Failed to create backend scheduler";
         return false;
     }
-    
+
     state_.compute_meta.resize(ggml_tensor_overhead() * QWEN3_ASR_MAX_NODES + ggml_graph_overhead());
+
+    set_n_threads(n_threads_);
     
     return true;
 }
@@ -272,33 +280,19 @@ bool TextDecoder::create_tensors(gguf_context * ctx) {
 }
 
 bool TextDecoder::load_tensor_data(const std::string & path, gguf_context * ctx) {
-    int fd = open(path.c_str(), O_BINARY);
-    if (fd < 0) {
-        error_msg_ = "Failed to open file for mmap: " + path;
+    if (!map_file_readonly(path, model_.mmap, error_msg_)) {
         return false;
     }
-    
-    struct stat64 st{};
-    if (fstat64(fd, &st) != 0) {
-        error_msg_ = "Failed to stat file: " + path;
-        close(fd);
-        return false;
-    }
-    
-    void * mmap_addr = mmap(nullptr, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-    close(fd);
-    
-    if (mmap_addr == MAP_FAILED) {
-        error_msg_ = "Failed to mmap file: " + path;
-        return false;
-    }
-    
-    model_.mmap_addr = mmap_addr;
-    model_.mmap_size = st.st_size;
-    
+
     const size_t data_offset = gguf_get_data_offset(ctx);
-    const size_t total_size = st.st_size - data_offset;
-    uint8_t * data_base = (uint8_t *)mmap_addr + data_offset;
+    if (data_offset > model_.mmap.size) {
+        error_msg_ = "Invalid GGUF data offset in file: " + path;
+        unmap_file(model_.mmap);
+        return false;
+    }
+
+    const size_t total_size = model_.mmap.size - data_offset;
+    uint8_t * data_base = static_cast<uint8_t *>(model_.mmap.addr) + data_offset;
     
     const int64_t n_tensors = gguf_get_n_tensors(ctx);
     size_t max_tensor_size = 0;
@@ -309,15 +303,15 @@ bool TextDecoder::load_tensor_data(const std::string & path, gguf_context * ctx)
 
     // Try GPU device buffer (zero-copy on Apple Silicon unified memory)
     ggml_backend_dev_t gpu_dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_GPU);
-    bool is_cuda = false;
-    if (gpu_dev) {
+    bool use_vram = gpu_dev && getenv("QWEN_USE_VRAM") != nullptr;
+    if (!use_vram && gpu_dev) {
         const char * dev_name = ggml_backend_dev_name(gpu_dev);
         if (dev_name && (strstr(dev_name, "CUDA") != nullptr || strstr(dev_name, "cuda") != nullptr)) {
-            is_cuda = true;
+            use_vram = true;
         }
     }
 
-    if (is_cuda) {
+    if (use_vram) {
         ggml_backend_t backend = ggml_backend_dev_init(gpu_dev, nullptr);
         model_.buffer = ggml_backend_alloc_ctx_tensors(model_.ctx, backend);
         if (model_.buffer) {
@@ -329,34 +323,34 @@ bool TextDecoder::load_tensor_data(const std::string & path, gguf_context * ctx)
                 if (it == model_.tensors.end()) continue;
                 ggml_backend_tensor_set(it->second, data_base + offset, 0, ggml_nbytes(it->second));
             }
+            ggml_backend_free(backend);
+            return true;
         }
         ggml_backend_free(backend);
-    } else {
-        if (gpu_dev) {
-            model_.buffer = ggml_backend_dev_buffer_from_host_ptr(gpu_dev, data_base, total_size, max_tensor_size);
-        }
-        if (!model_.buffer) {
-            model_.buffer = ggml_backend_cpu_buffer_from_ptr(data_base, total_size);
-        }
-        if (!model_.buffer) {
-            error_msg_ = "Failed to create buffer from mmap";
-            munmap(mmap_addr, st.st_size);
-            model_.mmap_addr = nullptr;
-            model_.mmap_size = 0;
-            return false;
-        }
+    }
 
-        for (int64_t i = 0; i < n_tensors; ++i) {
-            const char * name = gguf_get_tensor_name(ctx, i);
-            size_t offset = gguf_get_tensor_offset(ctx, i);
+    if (gpu_dev) {
+        model_.buffer = ggml_backend_dev_buffer_from_host_ptr(gpu_dev, data_base, total_size, max_tensor_size);
+    }
+    if (!model_.buffer) {
+        model_.buffer = ggml_backend_cpu_buffer_from_ptr(data_base, total_size);
+    }
+    if (!model_.buffer) {
+        error_msg_ = "Failed to create buffer from mmap";
+        unmap_file(model_.mmap);
+        return false;
+    }
 
-            auto it = model_.tensors.find(name);
-            if (it == model_.tensors.end()) continue;
+    for (int64_t i = 0; i < n_tensors; ++i) {
+        const char * name = gguf_get_tensor_name(ctx, i);
+        size_t offset = gguf_get_tensor_offset(ctx, i);
 
-            ggml_tensor * tensor = it->second;
-            tensor->buffer = model_.buffer;
-            tensor->data = data_base + offset;
-        }
+        auto it = model_.tensors.find(name);
+        if (it == model_.tensors.end()) continue;
+
+        ggml_tensor * tensor = it->second;
+        tensor->buffer = model_.buffer;
+        tensor->data = data_base + offset;
     }
 
     return true;
@@ -800,10 +794,8 @@ void free_decoder_model(text_decoder_model & model) {
         ggml_free(model.ctx);
         model.ctx = nullptr;
     }
-    if (model.mmap_addr) {
-        munmap(model.mmap_addr, model.mmap_size);
-        model.mmap_addr = nullptr;
-        model.mmap_size = 0;
+    if (model.mmap.addr) {
+        unmap_file(model.mmap);
     }
     model.tensors.clear();
     model.layers.clear();
@@ -883,6 +875,21 @@ std::string TextDecoder::decode_token(int32_t token_id) const {
     }
 
     std::string token = vocab_[token_id];
+
+    if (token == "<asr_text>") {
+        return "";
+    }
+
+    if (token.size() >= 11 && token.substr(0, 9) == "<|bytes_" &&
+        token.substr(token.size() - 2) == "|>") {
+        try {
+            const int byte_val = std::stoi(token.substr(9, token.size() - 11));
+            if (byte_val >= 0 && byte_val <= 255) {
+                return std::string(1, static_cast<char>(byte_val));
+            }
+        } catch (...) {
+        }
+    }
 
     // Skip special tokens like <|...|> and [PAD...]
     if (token.size() >= 3 && token[0] == '<' && token[1] == '|' &&
